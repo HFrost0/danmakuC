@@ -1,6 +1,6 @@
 # danmakuC
 
-Faster conversion for larger Danmaku conversion to Ass format. Core conversion part is written in C++ while with
+Faster conversion for larger Danmaku to Ass format. Core conversion part is written in C++ while with
 user-friendly Python api and cli (working on it...).
 
 ## Why danmakuC?
@@ -21,7 +21,7 @@ As you can see, over 100 times faster in large conversion. For video with more v
 (like movie and tv play), a fast tool like danmakuC is just what you need✊.
 
 ## Install
-Currently, author is learning how to provide c++ extenstion...
+Currently, author is learning how to provide c++ pypi extension...
 
 ## Usage
 
