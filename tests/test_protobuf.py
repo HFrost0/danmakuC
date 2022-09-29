@@ -13,7 +13,7 @@ def test_dm2ass():
     print(time.time() - a)
 
     a = time.time()
-    with open("test_dm_large.bin", "rb") as f:
+    with open("test_dm.bin", "rb") as f:
         text2 = proto2ass_old(f.read(), 1920, 1080)
     print(time.time() - a)
 
