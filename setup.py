@@ -5,8 +5,13 @@ ext_modules = [
     Pybind11Extension(
         "danmakuC._c.ass",
         ['danmakuC/csrc/ass.cpp'],
-        libraries=['fmt'],
+        # todo build for different platform, the path should not be fixed
+        include_dirs=[
+            '/opt/homebrew/Cellar/fmt/9.1.0/include',
+            '/opt/homebrew/Cellar/boost/1.79.0_2/include',
+        ],
         library_dirs=['/opt/homebrew/Cellar/fmt/9.1.0/lib'],  # Sort source files for reproducibility
+        libraries=['fmt'],
     ),
 ]
 
@@ -45,11 +50,6 @@ setup(
     packages=find_packages(),
     ext_modules=ext_modules,
     cmdclass={"build_ext": build_ext},
-    include_dirs=[
-        '/opt/homebrew/Cellar/boost/1.79.0_2/include',
-        '/opt/homebrew/Cellar/fmt/9.1.0/include'
-    ],
     python_requires=">=3.7",
-    setup_requires=["wheel"],
     install_requires=["protobuf>=4.21.0"],
 )
