@@ -21,7 +21,13 @@ As you can see, over 100 times faster in large conversion. For video with more v
 (like movie and tv play), a fast tool like danmakuC is just what you need✊.
 
 ## Install
-Currently, author is learning how to provide c++ pypi extension...
+
+Currently, author only build py3.9 and py3.10 whl for macOS11 arm64 platform for version 0.1a0, in the specific
+platform you can use
+
+```shell
+pip install danmakuC==0.1a0
+```
 
 ## Usage
 
