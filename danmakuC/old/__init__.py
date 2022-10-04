@@ -8,4 +8,4 @@ import logging
 
 from .utils import proto2ass
 
-logging.warning("The old module will be removed in the future")
+logging.warning("The danmakuC.old module will be removed in the future")
