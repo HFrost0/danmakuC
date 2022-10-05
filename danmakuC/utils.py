@@ -3,6 +3,8 @@ import re
 from danmakuC._c.ass import VectorComment, Comment, comments2ass
 from danmakuC.protobuf import DmSegMobileReply
 
+__all__ = ['proto2comments', 'proto2ass']
+
 
 def proto2comments(proto_bytes: bytes) -> VectorComment:
     target = DmSegMobileReply()

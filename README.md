@@ -22,8 +22,8 @@ As you can see, over 100 times faster in large conversion. For video with more v
 
 ## Install
 
-Currently, author only build py3.9 and py3.10 whl for macOS11 arm64 platform for version 0.1a0, in the specific
-platform you can use
+Currently, author only build python 3.9/3.10 whl for macOS11 arm64 and win amd64 platform for version 0.1a0, in
+these platforms you can use
 
 ```shell
 pip install danmakuC==0.1a0
@@ -34,7 +34,7 @@ pip install danmakuC==0.1a0
 Working on more feature including cli and xml conversion...
 
 ```python
-from danmakuC.utils import proto2ass
+from danmakuC import proto2ass
 
 with open("test_dm_large.bin", "rb") as f:
     ass_text = proto2ass(f.read(), 1920, 1080)
