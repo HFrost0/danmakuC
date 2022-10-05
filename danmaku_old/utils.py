@@ -1,14 +1,14 @@
 import logging
 import math
 from typing import Tuple, Sequence
-from danmakuC.old.ass import AssText
-from danmakuC.protobuf import DmSegMobileReply
+from danmaku_old.ass import AssText
+from danmakuC.protobuf import BiliCommentProto
 
 Comment = Tuple[float, float, int, str, int, int, float, float, float]
 
 
 def proto2comments(proto_bytes: bytes, font_size: float) -> Sequence[Comment]:
-    target = DmSegMobileReply()
+    target = BiliCommentProto()
     target.ParseFromString(proto_bytes)
     res = []
     for i, elem in enumerate(target.elems):

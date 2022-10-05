@@ -3,6 +3,10 @@
 Faster conversion for larger Danmaku to Ass format. Core conversion part is written in C++ while with
 user-friendly Python api and cli (working on it...).
 
+Currently, support types:
+
+* [bilibili](htts://wwww.bilibili.com) protobuf
+
 ## Why danmakuC?
 
 While [Danmaku2ASS](https://github.com/m13253/danmaku2ass) and [biliass](https://github.com/yutto-dev/biliass) provides
@@ -22,16 +26,16 @@ As you can see, over 100 times faster in large conversion. For video with more v
 
 ## Install
 
-Currently, author only build python 3.9/3.10 whl for macOS11 arm64 and win amd64 platform for version 0.1a0, in
-these platforms you can use
+Currently, author only build python 3.9/3.10 whl for macOS11 arm64 and Windows amd64 platform for version 0.1a0, in
+these platforms you can use `pip` to install.
 
 ```shell
 pip install danmakuC==0.1a0
 ```
 
-## Usage
+if you are using other platforms, feel free to build from source if you are familiar with c++ extension.
 
-Working on more feature including cli and xml conversion...
+## Usage
 
 ```python
 from danmakuC import proto2ass
@@ -40,3 +44,5 @@ with open("test_dm_large.bin", "rb") as f:
     ass_text = proto2ass(f.read(), 1920, 1080)
 
 ```
+
+Working on more feature including cli and other site danmaku conversion...

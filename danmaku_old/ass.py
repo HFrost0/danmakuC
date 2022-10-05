@@ -4,9 +4,6 @@ import math
 import re
 
 
-# from danmakuC.__version__ import __version__
-
-
 class AssText:
     def __init__(self, width: int, height: int, reserve_blank: int, font_face: str, font_size: float, alpha: float,
                  duration_marquee: float, duration_still: float):

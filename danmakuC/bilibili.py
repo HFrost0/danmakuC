@@ -1,13 +1,14 @@
-import json
-import re
+# import json
+# import re
 from danmakuC._c.ass import VectorComment, Comment, comments2ass
-from danmakuC.protobuf import DmSegMobileReply
+from danmakuC.protobuf import BiliCommentProto
 
 __all__ = ['proto2comments', 'proto2ass']
 
 
 def proto2comments(proto_bytes: bytes) -> VectorComment:
-    target = DmSegMobileReply()
+    """convert bilibili protobuf bytes to VectorComment"""
+    target = BiliCommentProto()
     target.ParseFromString(proto_bytes)
     comments = VectorComment()
     for elem in target.elems:

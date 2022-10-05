@@ -50,7 +50,7 @@ int find_alternative_row(vector<vector<Comment*>>& rows, Comment& c, int height,
 }
 
 void mark_comment_row(vector<vector<Comment*>>& rows, Comment& c, int row) {
-    for (int i = row; i < row + ceil(c.part_size) && i < rows[0].size(); ++i)
+    for (size_t i = row; i < row + ceil(c.part_size) && i < rows[0].size(); ++i)
         rows[c.mode][i] = &c;
 }
 
@@ -199,7 +199,7 @@ public:
         vector<int> target_size{width, height};
         zoom_factor = get_zoom_factor(bili_player_size, target_size);
         handle_comments();
-        for (int i = 0; i < comments.size(); ++i) {
+        for (size_t i = 0; i < comments.size(); ++i) {
             Comment& c = comments[i];
             if (c.mode != 4)
                 write_comment(c);
@@ -277,7 +277,7 @@ public:
         });
 
         /// fill extra field
-        for (int idx = 0; idx < comments.size(); ++idx) {
+        for (size_t idx = 0; idx < comments.size(); ++idx) {
             Comment& i = comments[idx];
             if (i.mode != 4) {
                 i.size = int(i.font_size) * font_size / 25.0;
@@ -297,7 +297,7 @@ public:
 
         /// find row
         vector<vector<Comment*>> rows(4, vector<Comment*>(height - reserve_blank + 1, nullptr));
-        for (int idx = 0; idx < comments.size(); ++idx) {
+        for (size_t idx = 0; idx < comments.size(); ++idx) {
             Comment& c = comments[idx];
             if (c.mode != 4) {  // not a bilipos
                 int row = 0;
@@ -324,15 +324,15 @@ public:
 };
 
 string comments2ass(vector<Comment>& comments,
-                    int width,
-                    int height,
-                    int reserve_blank,
-                    std::string font_face,
-                    float font_size,
-                    float alpha,
-                    float duration_marquee,
-                    float duration_still,
-                    bool reduced) {
+                    int width = 1920,
+                    int height = 1080,
+                    int reserve_blank = 0,
+                    std::string font_face = "sans-serif",
+                    float font_size = 25.0,
+                    float alpha = 1.0,
+                    float duration_marquee = 5.0,
+                    float duration_still = 5.0,
+                    bool reduced = false) {
     AssText ass(width, height, reserve_blank, font_face, font_size, alpha, duration_marquee, duration_still, reduced,
                 comments);
     return ass.to_string();
@@ -348,8 +348,18 @@ PYBIND11_MODULE(ass, m) {
 
     py::class_<Comment>(m, "Comment")
             .def(py::init<float, int, std::string, float, int, int>())
+            .def_readwrite("content", &Comment::content)
+            .def_readonly("progress", &Comment::progress)
+            .def_readonly("ctime", &Comment::ctime)
+            .def_readonly("font_size", &Comment::font_size)
+            .def_readonly("mode", &Comment::mode)
+            .def_readonly("color", &Comment::color)
+            .def_readonly("size", &Comment::size)
+            .def_readonly("part_size", &Comment::part_size)
+            .def_readonly("max_len", &Comment::max_len)
+            .def_readonly("row", &Comment::row)
             .def("__repr__", [](const Comment& c) {
-                return "<Comment '" + c.content + "'>";
+                return "<danmakuC._c.ass.Comment '" + c.content + "'>";
             });
     m.def("comments2ass", &comments2ass, "convert comments to ass");
 }

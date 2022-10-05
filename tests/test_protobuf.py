@@ -1,5 +1,5 @@
 import time
-from danmakuC.old import proto2ass as proto2ass_old
+from danmaku_old import proto2ass as proto2ass_old
 from danmakuC import proto2ass
 
 file = 'test_dm_large.bin'
