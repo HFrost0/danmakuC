@@ -53,4 +53,7 @@ setup(
     cmdclass={"build_ext": build_ext},
     python_requires=">=3.7",
     install_requires=["protobuf>=4.21.0"],
+    entry_points={
+        "console_scripts": "danmakuC=danmakuC.__main__:main",
+    },
 )
