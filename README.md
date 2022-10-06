@@ -19,7 +19,8 @@ conversion. Let's see how fast it is:
 | Danmaku2ASS/biliass | 0.0105 s                   | 47.0650 s                           |
 | danmakuC            | 0.0009 s                   | 0.2077 s                            |
 
-> Results are obtained in M1 arm64 chip mac with python3.10, danmaku file is downloaded from bilibili by bilix.
+> Results are obtained in M1 arm64 chip mac with python3.10 danmakuC v0.1a0, danmaku file is downloaded from bilibili by
+> [bilix](https://github.com/HFrost0/bilix).
 
 As you can see, over 100 times faster in large conversion. For video with more viewer and comments
 (like movie and tv play), a fast tool like danmakuC is just what you need✊.
@@ -37,6 +38,8 @@ if you are using other platforms, feel free to build from source if you are fami
 
 ## Usage
 
+In python, you can use danmakuC like:
+
 ```python
 from danmakuC import proto2ass
 
@@ -45,4 +48,45 @@ with open("test_dm_large.bin", "rb") as f:
 
 ```
 
-Working on more feature including cli and other site danmaku conversion...
+If you prefer to use cli, you can use danmakuC like:
+
+```shell
+danmakuC src.bin -o tgt.ass
+```
+
+for more feature, you can check `-h`
+
+```shell
+danmakuC -h
+
+usage: danmakuC [-h] [-o OUTPUT] [-s SIZE] [-rb RESERVE_BLANK] [-fn FONT] [-fs FONTSIZE] [-a ALPHA] [-dm DURATION_MARQUEE] [-ds DURATION_STILL] [-fl FILTER] [-r] [-v] file
+
+danmakuC cli version 0.2a0
+
+positional arguments:
+  file                  Comment file to be processed
+
+options:
+  -h, --help            show this help message and exit
+  -o OUTPUT, --output OUTPUT
+                        Output file
+  -s SIZE, --size SIZE  Stage size in pixels [default: 1920x1080]
+  -rb RESERVE_BLANK, --reserve-blank RESERVE_BLANK
+                        Reserve blank on the bottom of the stage [default: 0]
+  -fn FONT, --font FONT
+                        Specify font face [default: sans-serif]
+  -fs FONTSIZE, --fontsize FONTSIZE
+                        Default font size [default: 25.0]
+  -a ALPHA, --alpha ALPHA
+                        Alpha [default: 1.0]
+  -dm DURATION_MARQUEE, --duration-marquee DURATION_MARQUEE
+                        Duration of scrolling comment display [default: 5.0]
+  -ds DURATION_STILL, --duration-still DURATION_STILL
+                        Duration of still comment display [default: 5.0]
+  -fl FILTER, --filter FILTER
+                        Regular expression to filter comments
+  -r, --reduce          Reduce the amount of comments if stage is full
+  -v, --version         show program's version number and exit
+
+
+```
