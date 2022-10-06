@@ -41,7 +41,7 @@ def main():
         type=float,
         default=5.0,
     )
-    parser.add_argument("-fl", "--filter", help="Regular expression to filter comments")
+    parser.add_argument("-fl", "--filter", help="Regular expression to filter comments", default="")
     # parser.add_argument(
     #     "-flf", "--filter-file", help="Regular expressions from file (one line one regex) to filter comments"
     # )
