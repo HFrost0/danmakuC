@@ -1,5 +1,9 @@
+import os
 from pybind11.setup_helpers import build_ext, Pybind11Extension
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, Extension
+
+cwd = os.path.dirname(os.path.abspath(__file__))
+third_party_path = os.path.join(cwd, "third_party")
 
 ext_modules = [
     Pybind11Extension(
@@ -7,10 +11,10 @@ ext_modules = [
         ['danmakuC/csrc/ass.cpp'],
         # todo build for different platform, the path should not be fixed
         include_dirs=[
-            '/opt/homebrew/Cellar/fmt/9.1.0/include',
-            '/opt/homebrew/Cellar/boost/1.79.0_2/include',
+            f'{third_party_path}/fmt/include',
+            f'{third_party_path}/boost/include',
         ],
-        library_dirs=['/opt/homebrew/Cellar/fmt/9.1.0/lib'],  # Sort source files for reproducibility
+        library_dirs=[f'{third_party_path}/fmt/lib'],
         libraries=['fmt'],
     ),
 ]
