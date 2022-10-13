@@ -1,12 +1,10 @@
 from pybind11.setup_helpers import build_ext, Pybind11Extension
-from setuptools import setup, find_packages, Extension
-
+from setuptools import setup, find_packages
 
 ext_modules = [
     Pybind11Extension(
         "danmakuC._c.ass",
         ['danmakuC/csrc/ass.cpp'],
-        # todo build for different platform, the path should not be fixed
         include_dirs=[
             f'third_party/fmt/include',
             f'third_party/boost_1_80_0',
