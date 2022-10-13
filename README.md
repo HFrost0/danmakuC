@@ -1,7 +1,7 @@
 # danmakuC
 
 Faster conversion for larger Danmaku to Ass format. Core conversion part is written in C++ while with
-user-friendly Python api and cli (working on it...).
+user-friendly Python api and cli.
 
 Currently, support types:
 
@@ -9,7 +9,8 @@ Currently, support types:
 
 ## Why danmakuC?
 
-While [Danmaku2ASS](https://github.com/m13253/danmaku2ass) and [biliass](https://github.com/yutto-dev/biliass) provides
+.ass format can be recognized by your local video player,
+while [Danmaku2ASS](https://github.com/m13253/danmaku2ass) and [biliass](https://github.com/yutto-dev/biliass) provides
 a great tool to convert danmaku to ass format, the conversion of large danmaku is **incredibly slow** since it's a heavy
 CPU bound task for Python🥲. danmakuC refactor those two repos and provide a much faster C++ implementation to speed up
 conversion. Let's see how fast it is:
@@ -27,14 +28,15 @@ As you can see, over 100 times faster in large conversion. For video with more v
 
 ## Install
 
-Currently, author only build python 3.9/3.10 whl for macOS11 arm64 and Windows amd64 platform for version 0.1a0, in
-these platforms you can use `pip` to install.
-
 ```shell
-pip install danmakuC==0.1a0
+pip install danmakuC
 ```
 
-if you are using other platforms, feel free to build from source if you are familiar with c++ extension.
+danmakuC have been built for many platforms, including macOS x86_64/arm64, linux x86_64/aarch64 and windows amd64,
+more platforms can be found in [pypi](https://pypi.org/project/danmakuC/#files).
+
+If you are using unsupported platforms (like win32), `pip` will let you know there is no wheel available,
+but feel free to build from source if you are familiar with c++ extension.
 
 ## Usage
 
