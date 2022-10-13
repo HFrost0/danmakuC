@@ -4,3 +4,42 @@ requires = [
     "pybind11>=2.10.0",
 ]
 build-backend = "setuptools.build_meta"
+
+[tool.cibuildwheel]
+#test-requires = "pytest"
+test-command = "python -m danmakuC {package}/tests/test_dm.bin 1>NULL"
+
+[tool.cibuildwheel.macos]
+archs = ["x86_64"]
+#archs = ["x86_64", "arm64"]  # disable since no native runner or emulation available right now
+before-all = "brew install fmt boost"
+
+[tool.cibuildwheel.linux]
+archs = ["x86_64", "aarch64"]  # all platform since emulation is available
+before-all = [
+    # install fmt
+    "git clone -b 9.1.0 https://github.com/fmtlib/fmt.git",
+    "mkdir fmt/build",
+    "cmake -S fmt -B fmt/build -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DFMT_TEST=FALSE",
+    "cd fmt/build && make && make install && cd ../..",
+    # install boost
+    "curl -L https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.tar.gz > boost.tar.gz",
+    "tar -xzf boost.tar.gz",
+    "ln -s boost_1_80_0/boost /usr/include/boost"
+]
+
+[tool.cibuildwheel.windows]
+archs = ["AMD64"]  # since
+before-all = [
+    "mkdir third_party 2>NULL",
+    "cd third_party",
+    # install fmt
+    "git clone -b 9.1.0 https://github.com/fmtlib/fmt.git",
+    "mkdir fmt\\build",
+    "cmake -S fmt -B fmt\\build -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE -DFMT_TEST=FALSE",
+    "cmake --build fmt\\build --config Release",
+    # install boost
+    "C:\\msys64\\usr\\bin\\wget.exe https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.zip",
+    "7z x boost_1_80_0.zip",
+    "cd ..",
+]

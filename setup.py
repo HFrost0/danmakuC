@@ -1,9 +1,6 @@
-import os
 from pybind11.setup_helpers import build_ext, Pybind11Extension
 from setuptools import setup, find_packages, Extension
 
-cwd = os.path.dirname(os.path.abspath(__file__))
-third_party_path = os.path.join(cwd, "third_party")
 
 ext_modules = [
     Pybind11Extension(
@@ -11,10 +8,10 @@ ext_modules = [
         ['danmakuC/csrc/ass.cpp'],
         # todo build for different platform, the path should not be fixed
         include_dirs=[
-            f'{third_party_path}/fmt/include',
-            f'{third_party_path}/boost/include',
+            f'third_party/fmt/include',
+            f'third_party/boost_1_80_0',
         ],
-        library_dirs=[f'{third_party_path}/fmt/lib'],
+        library_dirs=[f'third_party/fmt/build/Release'],
         libraries=['fmt'],
     ),
 ]
@@ -55,7 +52,8 @@ setup(
     package_data={'danmakuC._c': ["*.pyi"]},
     ext_modules=ext_modules,
     cmdclass={"build_ext": build_ext},
-    python_requires=">=3.7",
+    # https://cibuildwheel.readthedocs.io/en/stable/faq/#windows-importerror-dll-load-failed-the-specific-module-could-not-be-found
+    python_requires=">=3.8.3",
     install_requires=["protobuf>=4.21.0"],
     entry_points={
         "console_scripts": "danmakuC=danmakuC.__main__:main",

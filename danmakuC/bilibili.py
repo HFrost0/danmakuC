@@ -1,6 +1,6 @@
 # import json
-from danmakuC._c.ass import Ass
-from danmakuC.protobuf import BiliCommentProto
+from ._c.ass import Ass
+from .protobuf import BiliCommentProto
 
 __all__ = ['proto2ass']
 
