@@ -1,5 +1,5 @@
 import time
-from danmaku_old import proto2ass as proto2ass_old
+from biliass import Danmaku2ASS
 from danmakuC import proto2ass
 
 file = 'test_dm_large.bin'
@@ -29,6 +29,6 @@ def test_new():
 def test_old():
     a = time.time()
     with open(file, "rb") as f:
-        text = proto2ass_old(f.read(), 1920, 1080)
+        text = Danmaku2ASS(f.read(), 1920, 1080, input_format="protobuf")
     print(time.time() - a)
     return text
