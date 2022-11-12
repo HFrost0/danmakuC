@@ -78,10 +78,12 @@ int test_free_row(vector<vector<Comment*>>& rows, Comment& c, int row, int width
         while (row < row_max && res < c.part_size) {
             if (target_row != rows[c.mode][row]) {
                 target_row = rows[c.mode][row];
-                div = target_row->max_len + width;
-                if (div != 0 && (target_row->progress > threshold_time ||
-                                 target_row->progress + target_row->max_len * duration_marquee / div > c.progress))
-                    break;
+                if (target_row != nullptr) {
+                    div = target_row->max_len + width;
+                    if (div != 0 && (target_row->progress > threshold_time ||
+                                     target_row->progress + target_row->max_len * duration_marquee / div > c.progress))
+                        break;
+                }
             }
             row++;
             res++;
