@@ -4,26 +4,26 @@ syntax = "proto3";
 message NNDComment {
     // Video upload date (Unix time, seconds)
     int64 thread = 1;
-	// Comment number (sequential, starting from 1)
-	int32 no = 2;
-	// Time offset from video start (centiseconds)
+    // Comment number (sequential, starting from 1)
+    int32 no = 2;
+    // Time offset from video start (centiseconds)
     int32 vpos = 3;
-	// Comment posted date (Unix time, seconds)
-    int64 date = 4; 
-	// Comment posted date decimal part (microseconds)
+    // Comment posted date (Unix time, seconds)
+    int64 date = 4;
+    // Comment posted date decimal part (microseconds)
     int32 date_usec = 5;
-	// Is comment anonymous (mail 184?)
+    // Is comment anonymous (mail 184?)
     bool anonymity = 6;
-	// User ID
+    // User ID
     string user_id = 7;
-	// Comment formatting (position, color, size, etc.)
+    // Comment formatting (position, color, size, etc.)
     string mail = 8;
-	// https://gist.github.com/otya128/9c7499cf667e75964b43d46c8c567e37
+    // https://gist.github.com/otya128/9c7499cf667e75964b43d46c8c567e37
     int32 leaf = 9;
     bool premium = 10;
     int32 score = 11;
-	// Comment text
-    string content = 12; 
+    // Comment text
+    string content = 12;
     // Which fork the comment is on ("owner", "main", "easy")
-    string fork = 15; 
+    string fork = 15;
 }
