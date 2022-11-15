@@ -40,7 +40,7 @@ size_t utf8_len(const string& utf8) {
 int find_alternative_row(vector<vector<Comment*>>& rows, Comment& c, int height, int reserve_blank) {
     int res = 0;
     for (int row = 0; row < height - reserve_blank - ceil(c.part_size); ++row) {
-        if (rows[c.mode][row] != nullptr)
+        if (rows[c.mode][row] == nullptr)
             return row;
         else if (rows[c.mode][row]->progress < rows[c.mode][res]->progress)
             res = row;
@@ -267,7 +267,7 @@ public:
                     } else
                         row += 1;  // todo row += freerows || 1;
                 }
-                if (flag && reduced) {
+                if (flag && !reduced) {
                     row = find_alternative_row(rows, c, height, reserve_blank);
                     mark_comment_row(rows, c, row);
                 }
