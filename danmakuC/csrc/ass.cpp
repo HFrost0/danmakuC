@@ -109,10 +109,25 @@ vector<float> get_zoom_factor(vector<int>& source_size, vector<int>& target_size
     }
 }
 
+// Preserve intended spacing at start and end of lines
+string process_blanks(string s)
+{
+        const string zero_width_space = "\u200b";
+        if (s.length() == 0)
+            return s;
+        return zero_width_space + s + zero_width_space;
+}
+
 string ass_escape(string s) {
-    // todo more
-//    s = regex_replace(s, regex("/n"), "\n");
-    return s;
+    // https://aegi.vmoe.info/docs/3.0/ASS_Tags/#index1h2
+    const std::regex e (R"(([\\}{]))"); //matches "\", "}", and "{"
+    string s2 = std::regex_replace(s, e, R"(\\$1)");
+    vector<string> lines;
+    boost::split(lines, s2, boost::is_any_of("\n"));
+    for (size_t idx = 0; idx < lines.size(); ++idx) {
+        lines[idx] = process_blanks(lines[idx]);
+	}
+    return boost::join(lines, R"(\N)");
 }
 
 int clip_byte(float x) {
@@ -319,7 +334,7 @@ public:
                             convert_progress(c.progress),
                             convert_progress(c.progress + duration),
                             boost::algorithm::join(styles, ""),
-                            c.content
+                            ass_escape(c.content)
         );
     }
 
