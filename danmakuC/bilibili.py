@@ -1,8 +1,9 @@
 # import json
 from ._c.ass import Ass
-from .protobuf import BiliCommentProto
+from .protobuf import BiliCommentProto, NNDComment
+import re
 
-__all__ = ['proto2ass']
+__all__ = ['proto2ass', 'proto2assnico']
 
 
 def proto2ass(
@@ -85,7 +86,7 @@ def process_mailstyle(mail, fontsize):
             color = int(re.match('#([a-fA-F0-9]{6})', mailstyle).group(1), base=16)
         elif mailstyle == 'patissier': #for comment art/fixed speed?
             patissier = True
-        
+
     return pos, color, size #, patissier
 
 def proto2assnico(
