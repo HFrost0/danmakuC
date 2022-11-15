@@ -112,7 +112,7 @@ vector<float> get_zoom_factor(vector<int>& source_size, vector<int>& target_size
 // Preserve intended spacing at start and end of lines
 string process_blanks(string s)
 {
-        const string zero_width_space = "\u200b";
+        const string zero_width_space = "​"; // U+200B
         if (s.length() == 0)
             return s;
         return zero_width_space + s + zero_width_space;
