@@ -38,8 +38,9 @@ def proto2ass(
     return ass.to_string()
 
 
-
+# https://w.atwiki.jp/nicoapi/pages/20.html
 NICONICO_COLOR_MAPPINGS = {
+    # Regular users
     'red': 0xff0000,
     'pink': 0xff8080,
     'orange': 0xffcc00,
@@ -49,6 +50,7 @@ NICONICO_COLOR_MAPPINGS = {
     'blue': 0x0000ff,
     'purple': 0xc000ff,
     'black': 0x000000,
+    #Premium users
     'niconicowhite': 0xcccc99,
     'white2': 0xcccc99,
     'truered': 0xcc0033,
@@ -65,16 +67,17 @@ NICONICO_COLOR_MAPPINGS = {
     'purple2': 0x6633cc,
 }
 
+HEX_COLOR_REGEX = re.compile('#([a-fA-F0-9]{6})')
 def process_mailstyle(mail, fontsize):
     pos, color, size, patissier = 0, 0xffffff, fontsize, False
     if not mail:
         return pos, color, size #, patissier
     for mailstyle in mail.split():
-        if mailstyle == 'ue': #top middle
+        if mailstyle == 'ue': # top middle
             pos = 1
-        elif mailstyle == 'shita': #bottom middle
+        elif mailstyle == 'shita': # bottom middle
             pos = 2
-        elif mailstyle == 'naka': #flying left-to-right
+        elif mailstyle == 'naka': # flying left-to-right
             pos = 0
         elif mailstyle == 'big':
             size = fontsize * 1.44
@@ -82,8 +85,8 @@ def process_mailstyle(mail, fontsize):
             size = fontsize * 0.64
         elif mailstyle in NICONICO_COLOR_MAPPINGS:
             color = NICONICO_COLOR_MAPPINGS[mailstyle]
-        elif len(mailstyle) == 7 and re.match('#([a-fA-F0-9]{6})', mailstyle):
-            color = int(re.match('#([a-fA-F0-9]{6})', mailstyle).group(1), base=16)
+        elif len(mailstyle) == 7 and re.match(HEX_COLOR_REGEX, mailstyle):
+            color = int(re.match(HEX_COLOR_REGEX, mailstyle).group(1), base=16)
         elif mailstyle == 'patissier': #for comment art/fixed speed?
             patissier = True
 
@@ -101,18 +104,20 @@ def proto2assnico(
         duration_still: float = 5.0,
         comment_filter: str = "",
         reduced: bool = False,
+        out_filename: str = "",
 ) -> str:
     ass = Ass(width, height, reserve_blank, font_face, font_size, alpha, duration_marquee,
               duration_still, comment_filter, reduced)
 
     w = proto_fp
+
+    comment = NNDComment()
     while True:
-        size = int.from_bytes(w.read(4))
+        size = int.from_bytes(w.read(4), byteorder='big', signed=False)
         if size == 0:
             break
 
         comment_serialized = w.read(size)
-        comment = NNDComment()
         comment.ParseFromString(comment_serialized)
         pos, color, size = process_mailstyle(comment.mail, font_size)
         ass.add_comment(
@@ -123,4 +128,7 @@ def proto2assnico(
             pos,
             color,
         )
-    return ass.to_string()
+    if out_filename:
+        ass.write_to_file(out_filename)
+    else:
+        return ass.to_string()

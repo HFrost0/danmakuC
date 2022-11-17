@@ -2,6 +2,7 @@
 #include <cmath>
 #include <codecvt>
 #include <regex>
+#include <fstream>
 #include <fmt/core.h>
 #include <boost/algorithm/string.hpp>
 #include <pybind11/pybind11.h>
@@ -259,7 +260,7 @@ public:
         return head + body;
     }
 
-    void write_comments() {
+    void write_comments(std::ofstream *out_fp = nullptr) {
         /// 1. clear body first
         body = "";
         /// 2. sort before find row
@@ -294,14 +295,14 @@ public:
                     mark_comment_row(rows, c, row);
                 }
                 c.row = row;
-                write_comment(c);
+                write_comment(c, out_fp);
             } else
-                write_bilipos_comment(c);
+                write_bilipos_comment(c, out_fp);
         }
         need_clear = false;
     }
 
-    void write_comment(Comment& c) {
+    void write_comment(Comment& c, std::ofstream *out_fp = nullptr) {
         vector<string> styles;
         float duration;
         switch (c.mode) {
@@ -337,15 +338,19 @@ public:
             if (c.color == 0x000000)
                 styles.push_back("\\3c&HFFFFFF&");
         }
-        body += fmt::format("Dialogue: 2,{0},{1},danmakuC,,0000,0000,0000,,{{{2}}}{3}\n",
+        string line = fmt::format("Dialogue: 2,{0},{1},danmakuC,,0000,0000,0000,,{{{2}}}{3}\n",
                             convert_progress(c.progress),
                             convert_progress(c.progress + duration),
                             boost::algorithm::join(styles, ""),
                             ass_escape(c.content)
         );
+        if (out_fp == nullptr)
+            body += line;
+        else
+            *out_fp << line;
     }
 
-    void write_bilipos_comment(Comment& c) {
+    void write_bilipos_comment(Comment& c, std::ofstream *out_fp = nullptr) {
         // todo
         return;
     }
@@ -356,6 +361,14 @@ public:
         else
             return bili_player_size[is_height] * zoom_factor[0] * input_pos + zoom_factor[is_height + 1];
     }
+
+    void write_to_file(string out_filename) {
+        std::ofstream out_fp;
+        out_fp.open(out_filename, std::ofstream::out);
+        out_fp << head;
+        write_comments(&out_fp);
+        out_fp.close();
+    }
 };
 
 namespace py = pybind11;
@@ -365,5 +378,6 @@ PYBIND11_MODULE(ass, m) {
     py::class_<Ass>(m, "Ass")
             .def(py::init<int, int, int, const string&, float, float, float, float, string, bool>())
             .def("add_comment", &Ass::add_comment)
-            .def("to_string", &Ass::to_string);
+            .def("to_string", &Ass::to_string)
+            .def("write_to_file", &Ass::write_to_file);
 }
