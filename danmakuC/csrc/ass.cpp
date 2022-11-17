@@ -53,6 +53,11 @@ void mark_comment_row(vector<vector<Comment*>>& rows, Comment& c, int row) {
         rows[c.mode][i] = &c;
 }
 
+void unmark_rows(vector<vector<Comment*>>& rows, int mode) {
+    for (size_t i = 0; i < rows[mode].size(); ++i)
+        rows[mode][i] = nullptr;
+}
+
 int test_free_row(vector<vector<Comment*>>& rows, Comment& c, int row, int width, int height,
                   int reserve_blank, float duration_marquee, float duration_still) {
     int res = 0;
@@ -280,10 +285,12 @@ public:
                         flag = false;
                         break;
                     } else
-                        row += 1;  // todo row += freerows || 1;
+                        row += free_row || 1;
                 }
                 if (flag && !reduced) {
                     row = find_alternative_row(rows, c, height, reserve_blank);
+                    if (row == 0)
+                        unmark_rows(rows, c.mode);
                     mark_comment_row(rows, c, row);
                 }
                 c.row = row;
