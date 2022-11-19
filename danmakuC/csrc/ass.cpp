@@ -6,8 +6,89 @@
 #include <fmt/core.h>
 #include <boost/algorithm/string.hpp>
 #include <pybind11/pybind11.h>
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
+#include "nndcomment.pb.h"
+#include "nndcomment.pb.cc"
 
 using namespace std;
+
+// https://w.atwiki.jp/nicoapi/pages/20.html
+const std::map<string, int> NICONICO_COLOR_MAPPINGS = {
+    // Regular user
+    { "white", 0xffffff },
+    { "red", 0xff0000 },
+    { "pink", 0xff8080 },
+    { "orange", 0xffcc00 },
+    { "yellow", 0xffff00 },
+    { "green", 0x00ff00 },
+    { "cyan", 0x00ffff },
+    { "blue", 0x0000ff },
+    { "purple", 0xc000ff },
+    { "black", 0x000000 },
+    // Premium user
+    { "niconicowhite", 0xcccc99 },
+    { "white2", 0xcccc99 },
+    { "truered", 0xcc0033 },
+    { "red2", 0xcc0033 },
+    { "passionorange", 0xff6600 },
+    { "orange2", 0xff6600 },
+    { "madyellow", 0x999900 },
+    { "yellow2", 0x999900 },
+    { "elementalgreen", 0x00cc66 },
+    { "green2", 0x00cc66 },
+    { "marineblue", 0x33ffcc },
+    { "blue2", 0x33ffcc },
+    { "nobleviolet", 0x6633cc },
+    { "purple2", 0x6633cc },
+};
+
+std::tuple<int, int, float> process_mailstyle(string mail, float fontsize) {
+	int pos = 0;
+	int color = 0xffffff;
+	float size = fontsize;
+	if (mail.length() == 0) return std::make_tuple(pos, color, size);
+    vector<string> parts;
+    boost::split(parts, mail, boost::is_any_of(" "));
+	for (string mailstyle : parts)
+	{
+		//cout << mailstyle;
+		if (mailstyle == "ue")
+		{
+			pos = 1; //top middle
+		}
+		else if (mailstyle == "shita")
+		{
+			pos = 2; //bottom middle
+		}
+		else if (mailstyle == "naka")
+		{
+			pos = 0; //default flying text (right to left)
+		}
+		else if (mailstyle == "big")
+		{
+			size = fontsize * 1.44;
+		}
+		else if (mailstyle == "small")
+		{
+			size = fontsize * 0.64;
+		}
+		else if (NICONICO_COLOR_MAPPINGS.count(mailstyle))
+		{
+			color = NICONICO_COLOR_MAPPINGS.at(mailstyle);
+		}
+		else if (std::regex_match (mailstyle, std::regex ("#([a-fA-F0-9]{6})")))
+		{
+			std::smatch sm;
+			std::regex e ("#([a-fA-F0-9]{6})");
+			std::regex_match (mailstyle, sm, e);
+			std::stringstream ss;
+			ss << std::hex << sm[1];
+			ss >> color;
+		}
+	}
+	return std::make_tuple(pos, color, size);
+}
 
 class Comment {
 public:
@@ -247,6 +328,40 @@ public:
         return true;
     }
 
+    int add_comments_from_file_niconico(string filename) {
+        ifstream file(filename, ios_base::in | ios_base::binary);
+        boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
+        in.push(boost::iostreams::gzip_decompressor());
+        in.push(file);
+        unsigned char sizebuf[4];
+        const int proto_bytes_size = 1<<20;
+        char proto_bytes[proto_bytes_size];
+        NNDComment proto_comment;
+        int count = 0;
+        while (true) {
+            if (in.sgetn((char *)sizebuf, 4) == 0) break;
+            uint32_t size = (sizebuf[0] << 24) | (sizebuf[1] << 16) | (sizebuf[2] << 8) | sizebuf[3];
+            if (size > proto_bytes_size) {
+                return -1;
+            }
+            in.sgetn(proto_bytes, size);
+            if (!proto_comment.ParseFromArray(proto_bytes, size)) {
+                return -1;
+            }
+            float progress = proto_comment.vpos() / 100.0f;
+            int ctime = proto_comment.date();
+            string content = proto_comment.content();
+            string mail = proto_comment.mail();
+            std::tuple<int, int, float> mailstyle = process_mailstyle(mail, font_size);
+            int mode = std::get<0>(mailstyle);
+            int color = std::get<1>(mailstyle);
+            float fontsize = std::get<2>(mailstyle);
+            add_comment(progress, ctime, content, fontsize, mode, color);
+            count++;
+        }
+        return count;
+    }
+
     string to_string() {
         if (body == "" || need_clear) {
             write_comments();
@@ -372,6 +487,7 @@ PYBIND11_MODULE(ass, m) {
     py::class_<Ass>(m, "Ass")
             .def(py::init<int, int, int, const string&, float, float, float, float, string, bool>())
             .def("add_comment", &Ass::add_comment)
+            .def("add_comments_from_file_niconico", &Ass::add_comments_from_file_niconico)
             .def("to_string", &Ass::to_string)
             .def("write_to_file", &Ass::write_to_file);
 }

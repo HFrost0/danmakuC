@@ -6,11 +6,19 @@ ext_modules = [
         "danmakuC._c.ass",
         ['danmakuC/csrc/ass.cpp'],
         include_dirs=[
-            f'third_party/fmt/include',
-            f'third_party/boost_1_80_0',
+            'third_party/fmt/include',
+            'third_party/boost_1_80_0',
+            'third_party/protobuf-3.21.9/src',
         ],
-        library_dirs=[f'third_party/fmt/build/Release'],
-        libraries=['fmt'],
+        library_dirs=[
+            'third_party/fmt/build/Release',
+            'third_party/boost_1_80_0/stage/lib',
+            'third_party/protobuf-3.21.9/cmake/build/Release',
+        ],
+        libraries=[
+            'fmt',
+            'libprotobuf',
+        ],
     ),
 ]
 

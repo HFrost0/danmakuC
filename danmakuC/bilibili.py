@@ -93,7 +93,7 @@ def process_mailstyle(mail, fontsize):
     return pos, color, size #, patissier
 
 def proto2assnico(
-        proto_fp,
+        proto_file,
         width: int,
         height: int,
         reserve_blank: int = 0,
@@ -109,10 +109,10 @@ def proto2assnico(
     ass = Ass(width, height, reserve_blank, font_face, font_size, alpha, duration_marquee,
               duration_still, comment_filter, reduced)
 
-    w = proto_fp
+    w = proto_file
 
     comment = NNDComment()
-    while True:
+    while not isinstance(w, str):
         size = int.from_bytes(w.read(4), byteorder='big', signed=False)
         if size == 0:
             break
@@ -128,6 +128,8 @@ def proto2assnico(
             pos,
             color,
         )
+    else:
+        ass.add_comments_from_file_niconico(proto_file)
     if out_filename:
         ass.write_to_file(out_filename)
     else:
