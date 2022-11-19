@@ -115,25 +115,19 @@ vector<float> get_zoom_factor(vector<int>& source_size, vector<int>& target_size
     }
 }
 
-// Preserve intended spacing at start and end of lines
-string process_blanks(string s)
-{
-        const string zero_width_space = "​"; // U+200B
-        if (s.length() == 0)
-            return s;
-        return zero_width_space + s + zero_width_space;
-}
-
+// https://aegi.vmoe.info/docs/3.0/ASS_Tags/#index1h2
 string ass_escape(string s) {
-    // https://aegi.vmoe.info/docs/3.0/ASS_Tags/#index1h2
-    const std::regex e (R"(([\\}{]))"); //matches "\", "}", and "{"
-    string s2 = std::regex_replace(s, e, R"(\\$1)");
-    vector<string> lines;
-    boost::split(lines, s2, boost::is_any_of("\n"));
-    for (size_t idx = 0; idx < lines.size(); ++idx) {
-        lines[idx] = process_blanks(lines[idx]);
-	}
-    return boost::join(lines, R"(\N)");
+    const string ZERO_WIDTH_SPACE = "​"; // U+200B
+
+    // prevent "\" from causing line breaks/escaping anything ("\\" won't work)
+    string s2 = boost::replace_all_copy(s, R"(\)", R"(\)" + ZERO_WIDTH_SPACE);
+
+    // escape "}" and "{" (override block chars) with backslash
+    s2 = std::regex_replace(s2, std::regex (R"(([}{]))"), R"(\$1)");
+
+    // preserve intended spacing at start and end of lines
+    boost::replace_all(s2, "\n", ZERO_WIDTH_SPACE + R"(\N)" + ZERO_WIDTH_SPACE);
+    return ZERO_WIDTH_SPACE + s2 + ZERO_WIDTH_SPACE;
 }
 
 int clip_byte(float x) {
@@ -342,7 +336,7 @@ public:
                             convert_progress(c.progress),
                             convert_progress(c.progress + duration),
                             boost::algorithm::join(styles, ""),
-                            ass_escape(c.content)
+                            c.content
         );
         if (out_fp == nullptr)
             body += line;
