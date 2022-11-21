@@ -52,14 +52,22 @@ def main():
     width, height = args.size.split("x")
     width = int(width)
     height = int(height)
-    with open(args.file, "rb") as f:
-        proto_bytes = f.read()
-    if args.output:
-        fo = open(args.output, "w", encoding="utf-8-sig", errors="replace", newline="\r\n")
-    else:
+    fo = None
+    if args.output == '-':
         fo = sys.stdout
+        out_filename = ''
+    elif args.output:
+        # fo = open(args.output, "w", encoding="utf-8-sig", errors="replace", newline="\r\n")
+        out_filename = args.output
+    else:
+        out_filename = args.file
+        if out_filename.endswith('.bin'):
+            out_filename = args.file[:-4]
+        elif out_filename.endswith('.bin.gz'):
+            out_filename = args.file[:-7]
+        out_filename += '.ass'
     output = proto2ass(
-        proto_bytes,
+        args.file,
         width,
         height,
         args.reserve_blank,
@@ -70,9 +78,11 @@ def main():
         args.duration_still,
         args.filter,
         args.reduce,
+        out_filename = out_filename,
     )
-    fo.write(output)
-    fo.close()
+    if fo:
+        fo.write(output)
+        fo.close()
 
 
 if __name__ == "__main__":

@@ -329,9 +329,21 @@ public:
     }
 
     int add_comments_from_file_niconico(string filename) {
+        bool compressed = false;
+        {
+            ifstream file(filename, ios_base::in | ios_base::binary);
+            boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
+            in.push(file);
+            unsigned char magic[2];
+            in.sgetn((char *)magic, 2);
+            file.close();
+            if ((magic[0] << 8) + magic[1] == 0x1f8b)
+                compressed = true;
+        }
         ifstream file(filename, ios_base::in | ios_base::binary);
         boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
-        in.push(boost::iostreams::gzip_decompressor());
+        if (compressed)
+            in.push(boost::iostreams::gzip_decompressor());
         in.push(file);
         unsigned char sizebuf[4];
         const int proto_bytes_size = 1<<20;
