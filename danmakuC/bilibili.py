@@ -66,7 +66,7 @@ def proto2ass(
     )
 
 def proto2assbili(
-        proto_file: bytes | io.IOBase,
+        proto_file: str | bytes | io.IOBase | os.PathLike,
         width: int,
         height: int,
         reserve_blank: int = 0,
@@ -83,28 +83,25 @@ def proto2assbili(
               duration_still, comment_filter, reduced)
 
     if isinstance(proto_file, io.IOBase):
-        proto_bytes = proto_file.read()
-    elif isinstance(proto_file, (str, os.PathLike)): # TODO
-        if is_gzip_file(proto_file):
-            open_func = gzip.open
-        else:
-            open_func = open
-        proto_bytes = open_func(proto_file, mode='rb').read()
-    elif isinstance(proto_file, bytes):
-        proto_bytes = proto_file
-    target = BiliCommentProto()
-    target.ParseFromString(proto_bytes)
-    for elem in target.elems:
-        if elem.mode == 8:
-            continue  # ignore scripted comment
-        ass.add_comment(
-            elem.progress / 1000,  # 视频内出现的时间
-            elem.ctime,  # 弹幕的发送时间（时间戳）
-            elem.content,
-            elem.fontsize,
-            {1: 0, 4: 2, 5: 1, 6: 3, 7: 4}[elem.mode],
-            elem.color,
-        )
+        proto_file = proto_file.read()
+    if isinstance(proto_file, bytes):
+        target = BiliCommentProto()
+        target.ParseFromString(proto_file)
+        for elem in target.elems:
+            if elem.mode == 8:
+                continue  # ignore scripted comment
+            ass.add_comment(
+                elem.progress / 1000,  # 视频内出现的时间
+                elem.ctime,  # 弹幕的发送时间（时间戳）
+                elem.content,
+                elem.fontsize,
+                {1: 0, 4: 2, 5: 1, 6: 3, 7: 4}[elem.mode],
+                elem.color,
+            )
+    elif isinstance(proto_file, str):
+        ass.add_comments_from_file_bilibili(proto_file)
+    elif isinstance(proto_file, os.PathLike):
+        ass.add_comments_from_file_bilibili(proto_file.__fspath__())
     if out_filename:
         return ass.write_to_file(out_filename)
     else:
@@ -166,7 +163,7 @@ def process_mailstyle(mail, fontsize):
     return pos, color, size #, patissier
 
 def proto2assnico(
-        proto_file: str | bytes | io.IOBase,
+        proto_file: str | bytes | io.IOBase | os.PathLike,
         width: int,
         height: int,
         reserve_blank: int = 0,

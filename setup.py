@@ -4,7 +4,11 @@ from setuptools import setup, find_packages
 ext_modules = [
     Pybind11Extension(
         "danmakuC._c.ass",
-        ['danmakuC/csrc/ass.cpp'],
+        [
+            'danmakuC/csrc/ass.cpp',
+            'danmakuC/csrc/nndcomment.pb.cc',
+            'danmakuC/csrc/reply.pb.cc',
+        ],
         include_dirs=[
             'third_party/fmt/include',
             'third_party/boost_1_80_0',

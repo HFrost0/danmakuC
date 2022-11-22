@@ -9,7 +9,9 @@
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include "nndcomment.pb.h"
-#include "nndcomment.pb.cc"
+#include "reply.pb.h"
+
+using namespace bilibili::community::service::dm::v1;
 
 using namespace std;
 
@@ -41,6 +43,14 @@ const std::map<string, int> NICONICO_COLOR_MAPPINGS = {
     { "blue2", 0x33ffcc },
     { "nobleviolet", 0x6633cc },
     { "purple2", 0x6633cc },
+};
+
+const std::map<int, int> BILIBILI_MODE_MAPPINGS = {
+    { 1, 0 },
+    { 4, 2 },
+    { 5, 1 },
+    { 6, 3 },
+    { 7, 4 },
 };
 
 std::tuple<int, int, float> process_mailstyle(string mail, float fontsize) {
@@ -328,18 +338,49 @@ public:
         return true;
     }
 
-    int add_comments_from_file_niconico(string filename) {
-        bool compressed = false;
-        {
-            ifstream file(filename, ios_base::in | ios_base::binary);
-            boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
-            in.push(file);
-            unsigned char magic[2];
-            in.sgetn((char *)magic, 2);
-            file.close();
-            if ((magic[0] << 8) + magic[1] == 0x1f8b)
-                compressed = true;
+    bool is_gzip_file(string filename) {
+        ifstream file(filename, ios_base::in | ios_base::binary);
+        boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
+        in.push(file);
+        unsigned char magic[2];
+        in.sgetn((char *)magic, 2);
+        file.close();
+        return ((magic[0] << 8) + magic[1] == 0x1f8b);
+    }
+
+    int add_comments_from_file_bilibili(string filename) {
+        bool compressed = is_gzip_file(filename);
+        ifstream file(filename, ios_base::in | ios_base::binary);
+        boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
+        if (compressed)
+            in.push(boost::iostreams::gzip_decompressor());
+        in.push(file);
+        std::istream is(&in);
+        DmSegMobileReply target;
+        target.ParseFromIstream(&is);
+        int count = 0;
+        for (DanmakuElem elem : target.elems()) {
+            if (elem.mode() == 8)
+                continue; // ignore scripted comment
+            float progress = elem.progress() / 1000.0f;
+            int ctime = elem.ctime();
+            string content = elem.content();
+            float fontsize = elem.fontsize();
+            int mode = elem.mode();
+            if (BILIBILI_MODE_MAPPINGS.count(mode))
+                mode = BILIBILI_MODE_MAPPINGS.at(mode);
+            else
+                mode = 0;
+            int color = elem.color();
+            add_comment(progress, ctime, content, fontsize, mode, color);
+            count++;
         }
+        file.close();
+        return count;
+    }
+
+    int add_comments_from_file_niconico(string filename) {
+        bool compressed = is_gzip_file(filename);
         ifstream file(filename, ios_base::in | ios_base::binary);
         boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
         if (compressed)
@@ -351,14 +392,22 @@ public:
         NNDComment proto_comment;
         int count = 0;
         while (true) {
-            if (in.sgetn((char *)sizebuf, 4) == 0) break;
+            int bytesread = in.sgetn((char *)sizebuf, 4);
+            if (bytesread == 0)
+                break;
+            if (bytesread != 4) {
+                count = -1;
+                break;
+            }
             uint32_t size = (sizebuf[0] << 24) | (sizebuf[1] << 16) | (sizebuf[2] << 8) | sizebuf[3];
             if (size > proto_bytes_size) {
-                return -1;
+                count = -1;
+                break;
             }
             in.sgetn(proto_bytes, size);
             if (!proto_comment.ParseFromArray(proto_bytes, size)) {
-                return -1;
+                count = -1;
+                break;
             }
             float progress = proto_comment.vpos() / 100.0f;
             int ctime = proto_comment.date();
@@ -371,6 +420,7 @@ public:
             add_comment(progress, ctime, content, fontsize, mode, color);
             count++;
         }
+        file.close();
         return count;
     }
 
@@ -499,6 +549,7 @@ PYBIND11_MODULE(ass, m) {
     py::class_<Ass>(m, "Ass")
             .def(py::init<int, int, int, const string&, float, float, float, float, string, bool>())
             .def("add_comment", &Ass::add_comment)
+            .def("add_comments_from_file_bilibili", &Ass::add_comments_from_file_bilibili)
             .def("add_comments_from_file_niconico", &Ass::add_comments_from_file_niconico)
             .def("to_string", &Ass::to_string)
             .def("write_to_file", &Ass::write_to_file);
