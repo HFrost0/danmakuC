@@ -20,3 +20,6 @@ class Ass:
     def to_string(self) -> str:
         """return the ass text"""
         ...
+
+    def write_to_file(self, str) -> None:
+        """direct write to the file to avoid memory cost"""

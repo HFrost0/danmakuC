@@ -3,11 +3,11 @@ import os
 import re
 from ._c.ass import Ass
 from .protobuf import NNDCommentProto
-from typing import Union
+from typing import Union, Optional
 
 
 def proto2ass(
-        proto_file: Union[str, bytes, io.IOBase, os.PathLike],
+        proto_file: Union[bytes, io.IOBase],
         width: int,
         height: int,
         reserve_blank: int = 0,
@@ -19,7 +19,7 @@ def proto2ass(
         comment_filter: str = "",
         reduced: bool = False,
         out_filename: str = "",
-) -> Union[str, int]:
+) -> Optional[str]:
     ass = Ass(width, height, reserve_blank, font_face, font_size, alpha, duration_marquee,
               duration_still, comment_filter, reduced)
     if isinstance(proto_file, bytes):
@@ -41,10 +41,6 @@ def proto2ass(
                 pos,
                 color,
             )
-    elif isinstance(proto_file, str):
-        ass.add_comments_from_file_niconico(proto_file)
-    elif isinstance(proto_file, os.PathLike):
-        ass.add_comments_from_file_niconico(proto_file.__fspath__())
     if out_filename:
         return ass.write_to_file(out_filename)
     else:
