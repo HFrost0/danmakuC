@@ -1,8 +1,72 @@
 import argparse
+import gzip
+import io
+import os
 import sys
 
-from danmakuC.bilibili import proto2ass
 from danmakuC.__version__ import __version__
+# sites
+from danmakuC import bilibili
+from danmakuC import niconico
+
+
+def is_gzip_file(filename: str | os.PathLike) -> bool:
+    gzip_magic = b'\x1f\x8b'
+    with open(filename, mode='rb') as fp:
+        if fp.read(2) == gzip_magic:
+            res = True
+        else:
+            res = False
+    return res
+
+
+def proto2ass(
+        proto_file: str | bytes | io.IOBase | os.PathLike,
+        width: int,
+        height: int,
+        reserve_blank: int = 0,
+        font_face: str = "sans-serif",
+        font_size: float = 25.0,
+        alpha: float = 1.0,
+        duration_marquee: float = 5.0,
+        duration_still: float = 5.0,
+        comment_filter: str = "",
+        reduced: bool = False,
+        out_filename: str = "",
+) -> str | int:
+    if isinstance(proto_file, (str, os.PathLike)):
+        if is_gzip_file(proto_file):
+            open_func = gzip.open
+        else:
+            open_func = open
+        with open_func(proto_file, mode='rb') as fp:
+            firstbyte = fp.read(1)
+    elif isinstance(proto_file, bytes):
+        firstbyte = proto_file[0:1]
+    elif isinstance(proto_file, io.IOBase):
+        firstbyte = proto_file.read(1)
+        proto_file.seek(-1, 1)
+    else:
+        raise TypeError('proto_file must be str, bytes, os.PathLike object or a file object')
+
+    if firstbyte == b'\x0a':
+        convert_func = bilibili.proto2ass
+    else:
+        convert_func = niconico.proto2ass
+    return convert_func(
+        proto_file,
+        width,
+        height,
+        reserve_blank=reserve_blank,
+        font_face=font_face,
+        font_size=font_size,
+        alpha=alpha,
+        duration_marquee=duration_marquee,
+        duration_still=duration_still,
+        comment_filter=comment_filter,
+        reduced=reduced,
+        out_filename=out_filename,
+    )
 
 
 def main():
@@ -78,7 +142,7 @@ def main():
         args.duration_still,
         args.filter,
         args.reduce,
-        out_filename = out_filename,
+        out_filename=out_filename,
     )
     if fo:
         fo.write(output)

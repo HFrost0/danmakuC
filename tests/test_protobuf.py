@@ -1,8 +1,8 @@
 import time
 from biliass import Danmaku2ASS
-from danmakuC import proto2ass
+from danmakuC.bilibili import proto2ass
 
-file = 'test_dm_large.bin'
+file = 'test_dm.bin'
 
 
 def test_cmp():
