@@ -1,9 +1,10 @@
 import io
-import os
 import re
 from ._c.ass import Ass
 from .protobuf import NNDCommentProto
 from typing import Union, Optional
+
+__all__ = ['proto2ass']
 
 
 def proto2ass(
@@ -24,23 +25,22 @@ def proto2ass(
               duration_still, comment_filter, reduced)
     if isinstance(proto_file, bytes):
         proto_file = io.BytesIO(proto_file)
-    if isinstance(proto_file, io.IOBase):
-        comment = NNDCommentProto()
-        while True:
-            size = int.from_bytes(proto_file.read(4), byteorder='big', signed=False)
-            if size == 0:
-                break
-            comment_serialized = proto_file.read(size)
-            comment.ParseFromString(comment_serialized)
-            pos, color, size = process_mailstyle(comment.mail, font_size)
-            ass.add_comment(
-                comment.vpos / 100,
-                comment.date,
-                comment.content,
-                size,
-                pos,
-                color,
-            )
+    comment = NNDCommentProto()
+    while True:
+        size = int.from_bytes(proto_file.read(4), byteorder='big', signed=False)
+        if size == 0:
+            break
+        comment_serialized = proto_file.read(size)
+        comment.ParseFromString(comment_serialized)
+        pos, color, size = process_mailstyle(comment.mail, font_size)
+        ass.add_comment(
+            comment.vpos / 100,
+            comment.date,
+            comment.content,
+            size,
+            pos,
+            color,
+        )
     if out_filename:
         return ass.write_to_file(out_filename)
     else:

@@ -2,7 +2,6 @@ from ._c.ass import Ass
 from .protobuf import BiliCommentProto
 from typing import Union, Optional
 import io
-import os
 
 __all__ = ['proto2ass']
 
