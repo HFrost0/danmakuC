@@ -7,98 +7,10 @@
 #include <boost/algorithm/string.hpp>
 #include <pybind11/pybind11.h>
 #include <boost/iostreams/filtering_streambuf.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
-#include "nndcomment.pb.h"
-#include "reply.pb.h"
 
-using namespace bilibili::community::service::dm::v1;
 
 using namespace std;
 
-// https://w.atwiki.jp/nicoapi/pages/20.html
-const std::map<string, int> NICONICO_COLOR_MAPPINGS = {
-    // Regular user
-    { "white", 0xffffff },
-    { "red", 0xff0000 },
-    { "pink", 0xff8080 },
-    { "orange", 0xffcc00 },
-    { "yellow", 0xffff00 },
-    { "green", 0x00ff00 },
-    { "cyan", 0x00ffff },
-    { "blue", 0x0000ff },
-    { "purple", 0xc000ff },
-    { "black", 0x000000 },
-    // Premium user
-    { "niconicowhite", 0xcccc99 },
-    { "white2", 0xcccc99 },
-    { "truered", 0xcc0033 },
-    { "red2", 0xcc0033 },
-    { "passionorange", 0xff6600 },
-    { "orange2", 0xff6600 },
-    { "madyellow", 0x999900 },
-    { "yellow2", 0x999900 },
-    { "elementalgreen", 0x00cc66 },
-    { "green2", 0x00cc66 },
-    { "marineblue", 0x33ffcc },
-    { "blue2", 0x33ffcc },
-    { "nobleviolet", 0x6633cc },
-    { "purple2", 0x6633cc },
-};
-
-const std::map<int, int> BILIBILI_MODE_MAPPINGS = {
-    { 1, 0 },
-    { 4, 2 },
-    { 5, 1 },
-    { 6, 3 },
-    { 7, 4 },
-};
-
-std::tuple<int, int, float> process_mailstyle(string mail, float fontsize) {
-	int pos = 0;
-	int color = 0xffffff;
-	float size = fontsize;
-	if (mail.length() == 0) return std::make_tuple(pos, color, size);
-    vector<string> parts;
-    boost::split(parts, mail, boost::is_any_of(" "));
-	for (string mailstyle : parts)
-	{
-		//cout << mailstyle;
-		if (mailstyle == "ue")
-		{
-			pos = 1; //top middle
-		}
-		else if (mailstyle == "shita")
-		{
-			pos = 2; //bottom middle
-		}
-		else if (mailstyle == "naka")
-		{
-			pos = 0; //default flying text (right to left)
-		}
-		else if (mailstyle == "big")
-		{
-			size = fontsize * 1.44;
-		}
-		else if (mailstyle == "small")
-		{
-			size = fontsize * 0.64;
-		}
-		else if (NICONICO_COLOR_MAPPINGS.count(mailstyle))
-		{
-			color = NICONICO_COLOR_MAPPINGS.at(mailstyle);
-		}
-		else if (std::regex_match (mailstyle, std::regex ("#([a-fA-F0-9]{6})")))
-		{
-			std::smatch sm;
-			std::regex e ("#([a-fA-F0-9]{6})");
-			std::regex_match (mailstyle, sm, e);
-			std::stringstream ss;
-			ss << std::hex << sm[1];
-			ss >> color;
-		}
-	}
-	return std::make_tuple(pos, color, size);
-}
 
 class Comment {
 public:
@@ -214,7 +126,7 @@ string ass_escape(string s) {
     string s2 = boost::replace_all_copy(s, R"(\)", R"(\)" + ZERO_WIDTH_SPACE);
 
     // escape "}" and "{" (override block chars) with backslash
-    s2 = std::regex_replace(s2, std::regex (R"(([}{]))"), R"(\$1)");
+    s2 = std::regex_replace(s2, std::regex(R"(([}{]))"), R"(\$1)");
 
     // preserve intended spacing at start and end of lines
     boost::replace_all(s2, "\n", ZERO_WIDTH_SPACE + R"(\N)" + ZERO_WIDTH_SPACE);
@@ -343,85 +255,9 @@ public:
         boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
         in.push(file);
         unsigned char magic[2];
-        in.sgetn((char *)magic, 2);
+        in.sgetn((char*) magic, 2);
         file.close();
         return ((magic[0] << 8) + magic[1] == 0x1f8b);
-    }
-
-    int add_comments_from_file_bilibili(string filename) {
-        bool compressed = is_gzip_file(filename);
-        ifstream file(filename, ios_base::in | ios_base::binary);
-        boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
-        if (compressed)
-            in.push(boost::iostreams::gzip_decompressor());
-        in.push(file);
-        std::istream is(&in);
-        DmSegMobileReply target;
-        target.ParseFromIstream(&is);
-        int count = 0;
-        for (DanmakuElem elem : target.elems()) {
-            if (elem.mode() == 8)
-                continue; // ignore scripted comment
-            float progress = elem.progress() / 1000.0f;
-            int ctime = elem.ctime();
-            string content = elem.content();
-            float fontsize = elem.fontsize();
-            int mode = elem.mode();
-            if (BILIBILI_MODE_MAPPINGS.count(mode))
-                mode = BILIBILI_MODE_MAPPINGS.at(mode);
-            else
-                mode = 0;
-            int color = elem.color();
-            add_comment(progress, ctime, content, fontsize, mode, color);
-            count++;
-        }
-        file.close();
-        return count;
-    }
-
-    int add_comments_from_file_niconico(string filename) {
-        bool compressed = is_gzip_file(filename);
-        ifstream file(filename, ios_base::in | ios_base::binary);
-        boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
-        if (compressed)
-            in.push(boost::iostreams::gzip_decompressor());
-        in.push(file);
-        unsigned char sizebuf[4];
-        const int proto_bytes_size = 1<<20;
-        char proto_bytes[proto_bytes_size];
-        NNDComment proto_comment;
-        int count = 0;
-        while (true) {
-            int bytesread = in.sgetn((char *)sizebuf, 4);
-            if (bytesread == 0)
-                break;
-            if (bytesread != 4) {
-                count = -1;
-                break;
-            }
-            uint32_t size = (sizebuf[0] << 24) | (sizebuf[1] << 16) | (sizebuf[2] << 8) | sizebuf[3];
-            if (size > proto_bytes_size) {
-                count = -1;
-                break;
-            }
-            in.sgetn(proto_bytes, size);
-            if (!proto_comment.ParseFromArray(proto_bytes, size)) {
-                count = -1;
-                break;
-            }
-            float progress = proto_comment.vpos() / 100.0f;
-            int ctime = proto_comment.date();
-            string content = proto_comment.content();
-            string mail = proto_comment.mail();
-            std::tuple<int, int, float> mailstyle = process_mailstyle(mail, font_size);
-            int mode = std::get<0>(mailstyle);
-            int color = std::get<1>(mailstyle);
-            float fontsize = std::get<2>(mailstyle);
-            add_comment(progress, ctime, content, fontsize, mode, color);
-            count++;
-        }
-        file.close();
-        return count;
     }
 
     string to_string() {
@@ -431,7 +267,7 @@ public:
         return head + body;
     }
 
-    void write_comments(std::ofstream *out_fp = nullptr) {
+    void write_comments(std::ofstream* out_fp = nullptr) {
         /// 1. clear body first
         body = "";
         /// 2. sort before find row
@@ -457,7 +293,7 @@ public:
                         flag = false;
                         break;
                     } else
-                        row += free_row || 1;
+                        row += free_row || 1; // todo condition is always true?
                 }
                 if (flag && !reduced) {
                     row = find_alternative_row(rows, c, height, reserve_blank);
@@ -473,7 +309,7 @@ public:
         need_clear = false;
     }
 
-    void write_comment(Comment& c, std::ofstream *out_fp = nullptr) {
+    void write_comment(Comment& c, std::ofstream* out_fp = nullptr) {
         vector<string> styles;
         float duration;
         switch (c.mode) {
@@ -510,10 +346,10 @@ public:
                 styles.push_back("\\3c&HFFFFFF&");
         }
         string line = fmt::format("Dialogue: 2,{0},{1},danmakuC,,0000,0000,0000,,{{{2}}}{3}\n",
-                            convert_progress(c.progress),
-                            convert_progress(c.progress + duration),
-                            boost::algorithm::join(styles, ""),
-                            c.content
+                                  convert_progress(c.progress),
+                                  convert_progress(c.progress + duration),
+                                  boost::algorithm::join(styles, ""),
+                                  c.content
         );
         if (out_fp == nullptr)
             body += line;
@@ -521,7 +357,7 @@ public:
             *out_fp << line;
     }
 
-    void write_bilipos_comment(Comment& c, std::ofstream *out_fp = nullptr) {
+    void write_bilipos_comment(Comment& c, std::ofstream* out_fp = nullptr) {
         // todo
         return;
     }
@@ -549,8 +385,6 @@ PYBIND11_MODULE(ass, m) {
     py::class_<Ass>(m, "Ass")
             .def(py::init<int, int, int, const string&, float, float, float, float, string, bool>())
             .def("add_comment", &Ass::add_comment)
-            .def("add_comments_from_file_bilibili", &Ass::add_comments_from_file_bilibili)
-            .def("add_comments_from_file_niconico", &Ass::add_comments_from_file_niconico)
             .def("to_string", &Ass::to_string)
             .def("write_to_file", &Ass::write_to_file);
 }
