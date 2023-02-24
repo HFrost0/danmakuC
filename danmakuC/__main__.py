@@ -3,7 +3,7 @@ import gzip
 import io
 import os
 import sys
-from typing import Callable
+from typing import Callable, Union
 
 from danmakuC.__version__ import __version__
 # sites
@@ -11,7 +11,7 @@ from danmakuC import bilibili
 from danmakuC import niconico
 
 
-def is_gzip_file(filename: str | os.PathLike) -> bool:
+def is_gzip_file(filename: Union[str, os.PathLike]) -> bool:
     gzip_magic = b'\x1f\x8b'
     with open(filename, mode='rb') as fp:
         if fp.read(2) == gzip_magic:
@@ -21,7 +21,7 @@ def is_gzip_file(filename: str | os.PathLike) -> bool:
     return res
 
 
-def get_convert_func(proto_file: str | bytes | io.IOBase | os.PathLike, ) -> Callable:
+def get_convert_func(proto_file: Union[str, bytes, io.IOBase, os.PathLike], ) -> Callable:
     if isinstance(proto_file, (str, os.PathLike)):
         if is_gzip_file(proto_file):
             open_func = gzip.open

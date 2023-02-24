@@ -1,5 +1,6 @@
 from ._c.ass import Ass
 from .protobuf import BiliCommentProto
+from typing import Union
 import io
 import os
 
@@ -7,7 +8,7 @@ __all__ = ['proto2ass']
 
 
 def proto2ass(
-        proto_file: str | bytes | io.IOBase | os.PathLike,
+        proto_file: Union[str, bytes, io.IOBase, os.PathLike],
         width: int,
         height: int,
         reserve_blank: int = 0,
@@ -19,7 +20,7 @@ def proto2ass(
         comment_filter: str = "",
         reduced: bool = False,
         out_filename: str = "",
-) -> str | int:
+) -> Union[str, int]:
     ass = Ass(width, height, reserve_blank, font_face, font_size, alpha, duration_marquee,
               duration_still, comment_filter, reduced)
 
