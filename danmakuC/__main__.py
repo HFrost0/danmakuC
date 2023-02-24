@@ -3,6 +3,7 @@ import gzip
 import io
 import os
 import sys
+from typing import Callable
 
 from danmakuC.__version__ import __version__
 # sites
@@ -20,20 +21,7 @@ def is_gzip_file(filename: str | os.PathLike) -> bool:
     return res
 
 
-def proto2ass(
-        proto_file: str | bytes | io.IOBase | os.PathLike,
-        width: int,
-        height: int,
-        reserve_blank: int = 0,
-        font_face: str = "sans-serif",
-        font_size: float = 25.0,
-        alpha: float = 1.0,
-        duration_marquee: float = 5.0,
-        duration_still: float = 5.0,
-        comment_filter: str = "",
-        reduced: bool = False,
-        out_filename: str = "",
-) -> str | int:
+def get_convert_func(proto_file: str | bytes | io.IOBase | os.PathLike, ) -> Callable:
     if isinstance(proto_file, (str, os.PathLike)):
         if is_gzip_file(proto_file):
             open_func = gzip.open
@@ -53,20 +41,7 @@ def proto2ass(
         convert_func = bilibili.proto2ass
     else:
         convert_func = niconico.proto2ass
-    return convert_func(
-        proto_file,
-        width,
-        height,
-        reserve_blank=reserve_blank,
-        font_face=font_face,
-        font_size=font_size,
-        alpha=alpha,
-        duration_marquee=duration_marquee,
-        duration_still=duration_still,
-        comment_filter=comment_filter,
-        reduced=reduced,
-        out_filename=out_filename,
-    )
+    return convert_func
 
 
 def main():
@@ -130,7 +105,7 @@ def main():
         elif out_filename.endswith('.bin.gz'):
             out_filename = args.file[:-7]
         out_filename += '.ass'
-    output = proto2ass(
+    output = get_convert_func(args.file)(
         args.file,
         width,
         height,
