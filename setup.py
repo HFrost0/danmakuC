@@ -6,22 +6,17 @@ ext_modules = [
         "danmakuC._c.ass",
         [
             'danmakuC/csrc/ass.cpp',
-            'danmakuC/csrc/nndcomment.pb.cc',
-            'danmakuC/csrc/reply.pb.cc',
         ],
         include_dirs=[
             'third_party/fmt/include',
             'third_party/boost_1_80_0',
-            'third_party/protobuf-3.21.9/src',
         ],
         library_dirs=[
             'third_party/fmt/build/Release',
             'third_party/boost_1_80_0/stage/lib',
-            'third_party/protobuf-3.21.9/cmake/build/Release',
         ],
         libraries=[
             'fmt',
-            'libprotobuf',
         ],
     ),
 ]
@@ -54,6 +49,7 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3 :: Only",
     ],
     author="HFrost0, m13253, Nyakku Shigure",
