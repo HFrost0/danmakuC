@@ -6,6 +6,7 @@ user-friendly Python api and cli.
 Currently, support types:
 
 * [bilibili](htts://wwww.bilibili.com) protobuf
+* [niconico](https://www.nicovideo.jp) protobuf since 0.3.1
 
 ## Why danmakuC?
 
@@ -43,7 +44,7 @@ but feel free to build from source if you are familiar with c++ extension.
 In python, you can use danmakuC like:
 
 ```python
-from danmakuC import proto2ass
+from danmakuC.bilibili import proto2ass
 
 with open("test_dm_large.bin", "rb") as f:
     ass_text = proto2ass(f.read(), 1920, 1080)
