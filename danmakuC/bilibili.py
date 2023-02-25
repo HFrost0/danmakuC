@@ -1,5 +1,5 @@
 from ._c.ass import Ass
-from .protobuf import BiliCommentProto
+from .protobuf.bilibili import BiliCommentProto
 from typing import Union, Optional
 import io
 

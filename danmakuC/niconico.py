@@ -1,7 +1,7 @@
 import io
 import re
 from ._c.ass import Ass
-from .protobuf import NNDCommentProto
+from .protobuf.niconico import NNDCommentProto
 from typing import Union, Optional
 
 __all__ = ['proto2ass']
