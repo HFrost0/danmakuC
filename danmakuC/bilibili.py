@@ -1,9 +1,11 @@
+import json
+from google.protobuf.json_format import MessageToJson
 from ._c.ass import Ass
-from .protobuf.bilibili import BiliCommentProto
+from .protobuf.bilibili import BiliCommentProto, BiliViewProto
 from typing import Union, Optional
 import io
 
-__all__ = ['proto2ass']
+__all__ = ['proto2ass', 'parse_view']
 
 
 def proto2ass(
@@ -42,3 +44,10 @@ def proto2ass(
         return ass.write_to_file(out_filename)
     else:
         return ass.to_string()
+
+
+def parse_view(content: bytes) -> dict:
+    dm_view = BiliViewProto()
+    dm_view.ParseFromString(content)
+    dm_view = json.loads(MessageToJson(dm_view))
+    return dm_view
