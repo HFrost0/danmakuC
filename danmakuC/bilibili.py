@@ -32,14 +32,17 @@ def proto2ass(
     for elem in target.elems:
         if elem.mode == 8:
             continue  # ignore scripted comment
-        ass.add_comment(
-            elem.progress / 1000,  # 视频内出现的时间
-            elem.ctime,  # 弹幕的发送时间（时间戳）
-            elem.content,
-            elem.fontsize,
-            {1: 0, 4: 2, 5: 1, 6: 3, 7: 4}[elem.mode],
-            elem.color,
-        )
+        try:
+            ass.add_comment(
+                elem.progress / 1000,  # 视频内出现的时间
+                elem.ctime,  # 弹幕的发送时间（时间戳）
+                elem.content,
+                elem.fontsize,
+                {1: 0, 4: 2, 5: 1, 6: 3, 7: 4}[elem.mode],
+                elem.color,
+            )
+        except TypeError:  # incase integer overflow https://github.com/HFrost0/bilix/issues/102
+            continue
     if out_filename:
         return ass.write_to_file(out_filename)
     else:
