@@ -63,12 +63,10 @@ jobs:
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v3
-        with:
-          path: dist
-          name: dist
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
+          packages-dir: artifact
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
