@@ -17,6 +17,8 @@ jobs:
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.12.1
+        env:
+          CIBW_ARCHS_MACOS: x86_64 arm64
         # env:
         #   CIBW_SOME_OPTION: value
         #    ...
