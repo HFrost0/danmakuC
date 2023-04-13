@@ -49,7 +49,7 @@ setup(
     author="HFrost0, m13253, Nyakku Shigure",
     license="GPLv3",
     packages=find_packages(exclude=['tests', 'danmaku_old']),
-    package_data={'danmakuC._c': ["*.pyi"]},
+    package_data={'danmakuC': ["*.pyi"]},
     ext_modules=ext_modules,
     cmdclass={"build_ext": build_ext},
     # https://cibuildwheel.readthedocs.io/en/stable/faq/#windows-importerror-dll-load-failed-the-specific-module-could-not-be-found
