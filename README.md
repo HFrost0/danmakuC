@@ -33,12 +33,6 @@ As you can see, over 100 times faster in large conversion. For video with more v
 pip install danmakuC
 ```
 
-danmakuC have been built for many platforms, including macOS x86_64/arm64, linux x86_64/aarch64 and windows amd64,
-more platforms can be found in [pypi](https://pypi.org/project/danmakuC/#files).
-
-If you are using unsupported platforms (like win32), `pip` will let you know there is no wheel available,
-but feel free to build from source if you are familiar with c++ extension.
-
 ## Usage
 
 In python, you can use danmakuC like:
