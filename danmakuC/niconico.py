@@ -1,6 +1,6 @@
 import io
 import re
-from ._c.ass import Ass
+from .ass import Ass
 from .protobuf.niconico import NNDCommentProto
 from typing import Union, Optional
 

@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 ext_modules = [
     Pybind11Extension(
-        "danmakuC._c.ass",
+        "danmakuC.ass",
         [
             'danmakuC/csrc/ass.cpp',
             'third_party/fmt/src/format.cc',

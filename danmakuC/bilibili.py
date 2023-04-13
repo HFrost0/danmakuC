@@ -1,6 +1,6 @@
 import json
 from google.protobuf.json_format import MessageToJson
-from ._c.ass import Ass
+from .ass import Ass
 from .protobuf.bilibili import BiliCommentProto, BiliViewProto
 from typing import Union, Optional
 import io
