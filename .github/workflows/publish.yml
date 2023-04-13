@@ -3,7 +3,6 @@ name: Build and Publish
 on: workflow_dispatch
 jobs:
   publish:
-    needs: [ build_wheels, build_sdist ]
     runs-on: ubuntu-latest
 
     steps:
