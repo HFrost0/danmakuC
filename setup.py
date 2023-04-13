@@ -6,17 +6,11 @@ ext_modules = [
         "danmakuC._c.ass",
         [
             'danmakuC/csrc/ass.cpp',
+            'third_party/fmt/src/format.cc',
         ],
         include_dirs=[
+            'third_party/boost_1_81_0',
             'third_party/fmt/include',
-            'third_party/boost_1_80_0',
-        ],
-        library_dirs=[
-            'third_party/fmt/build/Release',
-            'third_party/boost_1_80_0/stage/lib',
-        ],
-        libraries=[
-            'fmt',
         ],
     ),
 ]

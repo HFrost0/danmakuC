@@ -4,9 +4,8 @@
 #include <regex>
 #include <fstream>
 #include <fmt/core.h>
-#include <boost/algorithm/string.hpp>
 #include <pybind11/pybind11.h>
-#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/algorithm/string.hpp>
 
 
 using namespace std;
@@ -248,16 +247,6 @@ public:
             comment.size = comment.font_size, comment.part_size = 0, comment.max_len = 0;
         comments.push_back(comment);
         return true;
-    }
-
-    bool is_gzip_file(string filename) {
-        ifstream file(filename, ios_base::in | ios_base::binary);
-        boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
-        in.push(file);
-        unsigned char magic[2];
-        in.sgetn((char*) magic, 2);
-        file.close();
-        return ((magic[0] << 8) + magic[1] == 0x1f8b);
     }
 
     string to_string() {
