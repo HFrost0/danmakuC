@@ -119,7 +119,7 @@ vector<float> get_zoom_factor(vector<int>& source_size, vector<int>& target_size
 
 // https://aegi.vmoe.info/docs/3.0/ASS_Tags/#index1h2
 string ass_escape(string s) {
-    const string ZERO_WIDTH_SPACE = "​"; // U+200B
+    const string ZERO_WIDTH_SPACE = "\u200B"; // U+200B
 
     // prevent "\" from causing line breaks/escaping anything ("\\" won't work)
     string s2 = boost::replace_all_copy(s, R"(\)", R"(\)" + ZERO_WIDTH_SPACE);
