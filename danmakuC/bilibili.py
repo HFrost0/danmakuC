@@ -29,23 +29,21 @@ def proto2ass(
         proto_file = proto_file.read()
     target = BiliCommentProto()
     target.ParseFromString(proto_file)
+    # elem.mode > 8, example: https://www.bilibili.com/video/BV1Js411f78P/
+    mode_map = {1: 0, 4: 2, 5: 1, 6: 3, 7: 4}
     for elem in target.elems:
+        if elem.mode not in mode_map:
+            continue
         try:
-            assert elem.mode in (1,4,5,6,7,8)
-            if elem.mode in (1,4,5,6,7):
-                ass.add_comment(
+            ass.add_comment(
                 elem.progress / 1000,  # 视频内出现的时间
                 elem.ctime,  # 弹幕的发送时间（时间戳）
                 elem.content,
                 elem.fontsize,
-                {1: 0, 4: 2, 5: 1, 6: 3, 7: 4}[elem.mode],
+                mode_map[elem.mode],
                 elem.color,
             )
-            elif elem.mode == 8:
-                # scripted comment
-                continue
-        except (AssertionError, TypeError):
-            # AssertionError: elem.mode > 8, example: https://www.bilibili.com/video/BV1Js411f78P/
+        except TypeError:
             # TypeError: incase integer overflow https://github.com/HFrost0/bilix/issues/102
             continue
     if out_filename:
