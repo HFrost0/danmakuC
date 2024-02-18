@@ -1,4 +1,4 @@
-#include <map>
+#include <unordered_map>
 #include <cmath>
 #include <codecvt>
 #include <regex>
@@ -40,9 +40,9 @@ size_t utf8_len(const string& utf8) {
     return wstring_convert<codecvt_utf8<char32_t>, char32_t>{}.from_bytes(utf8).size();
 }
 
-int find_alternative_row(vector<vector<Comment*>>& rows, Comment& c, int height, int reserve_blank) {
+int find_alternative_row(array<vector<Comment*>, 4>& rows, Comment& c, int height) {
     int res = 0;
-    for (int row = 0; row < height - reserve_blank - ceil(c.part_size); ++row) {
+    for (int row = 0; row < height - ceil(c.part_size); ++row) {
         if (rows[c.mode][row] == nullptr)
             return row;
         else if (rows[c.mode][row]->progress < rows[c.mode][res]->progress)
@@ -51,23 +51,22 @@ int find_alternative_row(vector<vector<Comment*>>& rows, Comment& c, int height,
     return res;
 }
 
-void mark_comment_row(vector<vector<Comment*>>& rows, Comment& c, int row) {
+void mark_comment_row(array<vector<Comment*>, 4>& rows, Comment& c, int row) {
     for (size_t i = row; i < row + ceil(c.part_size) && i < rows[0].size(); ++i)
         rows[c.mode][i] = &c;
 }
 
-void unmark_rows(vector<vector<Comment*>>& rows, int mode) {
+void unmark_rows(array<vector<Comment*>, 4>& rows, int mode) {
     for (size_t i = 0; i < rows[mode].size(); ++i)
         rows[mode][i] = nullptr;
 }
 
-int test_free_row(vector<vector<Comment*>>& rows, Comment& c, int row, int width, int height,
-                  int reserve_blank, float duration_marquee, float duration_still) {
+int test_free_row(array<vector<Comment*>, 4>& rows, Comment& c, int row, int width, int height,
+                  float duration_marquee, float duration_still) {
     int res = 0;
-    int row_max = height - reserve_blank;
     Comment* target_row = nullptr;
     if (c.mode == 1 || c.mode == 2) {
-        while (row < row_max && res < c.part_size) {
+        while (row < height && res < c.part_size) {
             if (target_row != rows[c.mode][row]) {
                 target_row = rows[c.mode][row];
                 if (target_row != nullptr && target_row->progress + duration_still > c.progress)
@@ -83,7 +82,7 @@ int test_free_row(vector<vector<Comment*>>& rows, Comment& c, int row, int width
             threshold_time = c.progress - duration_marquee * (1 - width / float(div));
         else
             threshold_time = c.progress - duration_marquee;
-        while (row < row_max && res < c.part_size) {
+        while (row < height && res < c.part_size) {
             if (target_row != rows[c.mode][row]) {
                 target_row = rows[c.mode][row];
                 if (target_row != nullptr) {
@@ -100,7 +99,7 @@ int test_free_row(vector<vector<Comment*>>& rows, Comment& c, int row, int width
     return res;
 }
 
-vector<float> get_zoom_factor(vector<int>& source_size, vector<int>& target_size) {
+array<float, 3> get_zoom_factor(array<int, 2>& source_size, array<int, 2>& target_size) {
     float source_aspect = float(source_size[0]) / source_size[1];
     float target_aspect = float(target_size[0]) / target_size[1];
     if (target_aspect < source_aspect) {  // narrower
@@ -125,14 +124,15 @@ string ass_escape(string s) {
     string s2 = boost::replace_all_copy(s, R"(\)", R"(\)" + ZERO_WIDTH_SPACE);
 
     // escape "}" and "{" (override block chars) with backslash
-    s2 = std::regex_replace(s2, std::regex(R"(([}{]))"), R"(\$1)");
+    boost::replace_all(s2, "{", R"(\{)");
+    boost::replace_all(s2, "}", R"(\})");
 
     // preserve intended spacing at start and end of lines
     boost::replace_all(s2, "\n", ZERO_WIDTH_SPACE + R"(\N)" + ZERO_WIDTH_SPACE);
     return ZERO_WIDTH_SPACE + s2 + ZERO_WIDTH_SPACE;
 }
 
-int clip_byte(float x) {
+uint8_t clip_byte(float x) {
     if (x > 255) return 255;
     else if (x < 0) return 0;
     else return round(x);
@@ -143,9 +143,9 @@ string convert_color(int RGB, int width = 1280, int height = 576) {
         return "000000";
     else if (RGB == 0xFFFFFF)
         return "FFFFFF";
-    int R = (RGB >> 16) & 0xFF;
-    int G = (RGB >> 8) & 0xFF;
-    int B = RGB & 0xFF;
+    uint8_t R = RGB >> 16;
+    uint8_t G = RGB >> 8;
+    uint8_t B = RGB;
     if (width < 1280 and height < 576)
         return fmt::format("{:02X}{:02X}{:02X}", B, G, R);
     else
@@ -164,8 +164,12 @@ string convert_progress(float progress) {
     return fmt::format("{}:{:02d}:{:02d}.{:02d}", hour, minute, second, centsecond);
 }
 
-int convert_type2(int row, int height, int reserve_blank) {
-    return height - reserve_blank - row;
+void merge_comment(Comment& comment, unsigned int count) {
+    if (count > 1) {
+        string tmp = fmt::format(" *{}", count);
+        comment.content.append(tmp);
+        comment.max_len += comment.size * tmp.size();
+    }
 }
 
 class Ass {
@@ -178,19 +182,22 @@ public:
     float alpha;
     float duration_marquee;
     float duration_still;
-    string filter;
+    // string filter;
     bool reduced;
+    bool merge_duplicate;
     // others
     vector<Comment> comments;
-    vector<int> bili_player_size;
-    vector<float> zoom_factor;
+    array<int, 2> bili_player_size;
+    array<float, 3> zoom_factor;
     string head;
     string body = "";
     bool need_clear = false;
+    vector<regex> filters;
+    unordered_map<string, unsigned int> comments_map;
 
-    Ass(int w, int h, int rb, const string& ff, float fs, float a, float dm, float ds, const string& flt, bool rd) :
+    Ass(int w, int h, int rb, const string& ff, float fs, float a, float dm, float ds, const string& flt, bool rd, bool md) :
             width(w), height(h), reserve_blank(rb), font_face(ff), font_size(fs), alpha(a), duration_marquee(dm),
-            duration_still(ds), filter(flt), reduced(rd) {
+            duration_still(ds), reduced(rd), merge_duplicate(md) {
         head = fmt::format("[Script Info]\n"
                            "; Script generated by danmakuC (based on Danmaku2ASS)\n"
                            "; https://github.com/HFrost0/danmakuC\n"
@@ -211,29 +218,49 @@ public:
                            "\n"
                            "[Events]\n"
                            "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n",
-                           width, height, font_face, font_size, int(round(1 - alpha)) * 255,
+                           width, height, font_face, font_size, int(round((1 - alpha) * 255)),
                            max(font_size / 25.0, 1.0));
         // bili_player_size = {512, 384}  // Bilibili player version 2010
         // bili_player_size = {540, 384}  // Bilibili player version 2012
         // bili_player_size = {672, 438}  // Bilibili player version 2014
         bili_player_size = {891, 589};    // Bilibili player version 2021 (flex)
-        vector<int> target_size{width, height};
+        array<int, 2> target_size{width, height};
+        height -= reserve_blank;
         zoom_factor = get_zoom_factor(bili_player_size, target_size);
+        if (!flt.empty())
+        {
+            vector<string> flts;
+            boost::split(flts, flt, boost::is_any_of("\n"));
+            for (const string& str : flts)
+                filters.emplace_back(str);
+        }
     }
 
     bool add_comment(float progress, int ctime, const string& content, float fontsize, int mode, int color) {
         // need clear
         need_clear = true;
+
+        string cm = ass_escape(content);
+        if (merge_duplicate) {
+            auto it = comments_map.find(cm);
+            if (it != comments_map.end()) {
+                it->second++;
+                return false;
+            }
+            else
+                comments_map[cm] = 1;
+        }
         // content regex filter
-        if (filter != "" && regex_search(content, regex(filter)))
-            return false;
+        for (const regex& flt : filters) {
+            if (regex_search(content, flt))
+                return false;
+        }
         // calculate extra filed
-        Comment comment = Comment(progress, ctime, content, fontsize, mode, color);
+        Comment comment = Comment(progress, ctime, cm, fontsize, mode, color);
         if (comment.mode != 4) {
-            comment.content = ass_escape(comment.content);
             comment.size = int(comment.font_size) * font_size / 25.0;
             vector<string> parts;
-            boost::split(parts, comment.content, boost::is_any_of("\n"));
+            boost::split(parts, content, boost::is_any_of("\n"));
             comment.part_size = comment.size * parts.size();
             int max_len = 0;
             for (string& p: parts) {
@@ -267,16 +294,18 @@ public:
                 return a.ctime < b.ctime;
         });
         /// 3. find row
-        vector<vector<Comment*>> rows(4, vector<Comment*>(height - reserve_blank + 1, nullptr));
-        for (size_t idx = 0; idx < comments.size(); ++idx) {
-            Comment& c = comments[idx];
+        array<vector<Comment*>, 4> rows;
+        rows.fill(vector<Comment*>(height + 1, nullptr));
+        for (Comment& c : comments) {
+            if (merge_duplicate)
+                merge_comment(c, comments_map[c.content]);
             if (c.mode != 4) {  // not a bilipos
                 int row = 0;
-                int row_max = height - reserve_blank - c.part_size;
+                int row_max = height - c.part_size;
                 bool flag = true;
                 while (row <= row_max) {
                     int free_row = test_free_row(rows, c, row,
-                                                 width, height, reserve_blank, duration_marquee, duration_still);
+                                                 width, height, duration_marquee, duration_still);
                     if (free_row >= c.part_size) {
                         mark_comment_row(rows, c, row);
                         flag = false;
@@ -285,7 +314,7 @@ public:
                         row += free_row || 1; // todo condition is always true?
                 }
                 if (flag && !reduced) {
-                    row = find_alternative_row(rows, c, height, reserve_blank);
+                    row = find_alternative_row(rows, c, height);
                     if (row == 0)
                         unmark_rows(rows, c.mode);
                     mark_comment_row(rows, c, row);
@@ -299,45 +328,45 @@ public:
     }
 
     void write_comment(Comment& c, std::ofstream* out_fp = nullptr) {
-        vector<string> styles;
+        string styles;
         float duration;
         switch (c.mode) {
             case 1: {
-                styles.push_back(fmt::format("\\an8\\pos({}, {})",
+                styles.append(fmt::format("\\an8\\pos({}, {})",
                                              width / 2, c.row));
                 duration = duration_still;
                 break;
             }
             case 2: {
-                styles.push_back(fmt::format("\\an2\\pos({}, {})",
-                                             width / 2, convert_type2(c.row, height, reserve_blank)));
+                styles.append(fmt::format("\\an2\\pos({}, {})",
+                                             width / 2, height - c.row));
                 duration = duration_still;
                 break;
             }
             case 3: {
-                styles.push_back(fmt::format("\\move({2}, {1}, {0}, {1})",
+                styles.append(fmt::format("\\move({2}, {1}, {0}, {1})",
                                              width, c.row, -ceil(c.max_len)));
                 duration = duration_marquee;
                 break;
             }
             default: {
-                styles.push_back(fmt::format("\\move({0}, {1}, {2}, {1})",
+                styles.append(fmt::format("\\move({0}, {1}, {2}, {1})",
                                              width, c.row, -ceil(c.max_len)));
                 duration = duration_marquee;
             }
         }
         float size = c.size - font_size;
         if (size <= -1 || size >= 1)
-            styles.push_back(fmt::format("\\fs{:.0f}", c.size));
+            styles.append(fmt::format("\\fs{:.0f}", c.size));
         if (c.color != 0xFFFFFF) {
-            styles.push_back(fmt::format("\\c&H{}&", convert_color(c.color)));
+            styles.append(fmt::format("\\c&H{}&", convert_color(c.color)));
             if (c.color == 0x000000)
-                styles.push_back("\\3c&HFFFFFF&");
+                styles.append("\\3c&HFFFFFF&");
         }
         string line = fmt::format("Dialogue: 2,{0},{1},danmakuC,,0000,0000,0000,,{{{2}}}{3}\n",
                                   convert_progress(c.progress),
                                   convert_progress(c.progress + duration),
-                                  boost::algorithm::join(styles, ""),
+                                  styles,
                                   c.content
         );
         if (out_fp == nullptr)
@@ -372,7 +401,7 @@ namespace py = pybind11;
 PYBIND11_MODULE(ass, m) {
     m.doc() = "pybind11 ass extension"; // optional module docstring
     py::class_<Ass>(m, "Ass")
-            .def(py::init<int, int, int, const string&, float, float, float, float, string, bool>())
+            .def(py::init<int, int, int, const string&, float, float, float, float, string, bool, bool>())
             .def("add_comment", &Ass::add_comment)
             .def("to_string", &Ass::to_string)
             .def("write_to_file", &Ass::write_to_file);
