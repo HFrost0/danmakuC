@@ -8,65 +8,52 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-20.04, windows-2019, macos-11 ]
+        # macos-13 is an intel runner, macos-14 is apple silicon
+        os: [ubuntu-22.04, windows-2022, macos-13, macos-14]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.12.1
-        env:
-          CIBW_ARCHS_MACOS: x86_64 arm64
-        # env:
-        #   CIBW_SOME_OPTION: value
-        #    ...
-        # with:
-        #   package-dir: .
-        #   output-dir: wheelhouse
-        #   config-file: "{package}/pyproject.toml"
+        uses: pypa/cibuildwheel@v2.16.5
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
+          name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
           path: ./wheelhouse/*.whl
 
   build_sdist:
     name: Build source distribution
-    runs-on: ubuntu-20.04
-
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+
+      - name: Build sdist
+        run: pipx run build --sdist
+
+      - uses: actions/upload-artifact@v4
         with:
-          submodules: 'recursive'
+          name: cibw-sdist
+          path: dist/*.tar.gz
 
-      - name: Set up Python
-        uses: actions/setup-python@v3
-        with:
-          python-version: '3.x'
-
-      - name: Install dependencies
-        run: |
-          pip install setuptools build
-
-      - name: Build source distribution
-        run: python -m build --sdist --outdir dist
-
-      - uses: actions/upload-artifact@v3
-        with:
-          path: ./dist/*.tar.gz
-
-  publish:
+  upload_pypi:
     needs: [ build_wheels, build_sdist ]
     runs-on: ubuntu-latest
+    environment: pypi
 
     steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          # unpacks all CIBW artifacts into dist/
+          pattern: cibw-*
+          path: dist
+          merge-multiple: true
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages-dir: artifact
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
