@@ -19,10 +19,11 @@ def proto2ass(
         duration_still: float = 5.0,
         comment_filter: str = "",
         reduced: bool = False,
+        merge_duplicate: bool = False,
         out_filename: str = "",
 ) -> Optional[str]:
     ass = Ass(width, height, reserve_blank, font_face, font_size, alpha, duration_marquee,
-              duration_still, comment_filter, reduced)
+              duration_still, comment_filter, reduced, merge_duplicate)
     if isinstance(proto_file, bytes):
         proto_file = io.BytesIO(proto_file)
     comment = NNDCommentProto()
