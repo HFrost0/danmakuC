@@ -1,10 +1,13 @@
 import io
 import re
+import json
+import xml.etree.ElementTree as ET
+from datetime import datetime
 from .ass import Ass
 from .protobuf.niconico import NNDCommentProto
 from typing import Union, Optional
 
-__all__ = ['proto2ass']
+__all__ = ['proto2ass', 'json2ass', 'xml2ass']
 
 
 def proto2ass(
@@ -47,6 +50,113 @@ def proto2ass(
     return ass.to_string()
 
 
+def json2ass(
+        json_file: Union[str, bytes, io.IOBase],
+        width: int,
+        height: int,
+        reserve_blank: int = 0,
+        font_face: str = "sans-serif",
+        font_size: float = 25.0,
+        alpha: float = 1.0,
+        duration_marquee: float = 5.0,
+        duration_still: float = 5.0,
+        comment_filter: str = "",
+        reduced: bool = False,
+        out_filename: str = "",
+) -> Optional[str]:
+    ass = Ass(width, height, reserve_blank, font_face, font_size, alpha, duration_marquee,
+              duration_still, comment_filter, reduced)
+    if isinstance(json_file, (str, bytes)):
+        data = json.loads(json_file)
+    else:
+        data = json.load(json_file)
+    frk = None
+    if isinstance(data, dict):
+        for key in ["data", "threads", "comments"]:
+            if key in data:
+                if key == "comments":
+                    frk = data.get("fork", "unknown")
+                data = data[key]
+    if frk is not None:
+        commentlist = {frk: data}
+    elif data and data[0].get("comments") is not None:
+        commentlist = {}
+        for cmt in data:
+            if comments := cmt["comments"]:
+                commentlist.setdefault(cmt.get("fork", "unknown"), []).extend(comments)
+    else:
+        commentlist = {"unknown": data}
+    for f, comments in commentlist.items():
+        for comment in comments:
+            fork = f
+            vpos = comment["vposMs"] / 1000
+            text = comment["body"]
+            unixdate = datetime.fromisoformat(comment["postedAt"]).timestamp()
+            mail = comment["commands"]
+            style, commands = process_mailstyle(mail)
+            if commands.get("invisible"):
+                continue
+            pos, color, size = style["pos"], style["color"], style["size"] * font_size
+            if text.startswith(('@', '＠', '/')):
+                continue
+            ass.add_comment(
+                vpos,
+                int(unixdate),
+                text,
+                size,
+                pos,
+                color,
+            )
+    if out_filename:
+        return ass.write_to_file(out_filename)
+    return ass.to_string()
+
+
+def xml2ass(
+        xml_file: Union[str, bytes, io.IOBase],
+        width: int,
+        height: int,
+        reserve_blank: int = 0,
+        font_face: str = "sans-serif",
+        font_size: float = 25.0,
+        alpha: float = 1.0,
+        duration_marquee: float = 5.0,
+        duration_still: float = 5.0,
+        comment_filter: str = "",
+        reduced: bool = False,
+        out_filename: str = "",
+) -> Optional[str]:
+    ass = Ass(width, height, reserve_blank, font_face, font_size, alpha, duration_marquee,
+              duration_still, comment_filter, reduced)
+    if isinstance(xml_file, (str, bytes)):
+        root = ET.fromstring(xml_file)
+    else:
+        root = ET.parse(xml_file).getroot()
+    for chat in root.findall("chat"):
+        fork = chat.get("fork", "unknown")
+        vpos = int(chat.get("vpos")) / 100
+        date = int(chat.get("date"))
+        mail = chat.get("mail", '')
+        text = chat.text or ''
+        style, commands = process_mailstyle(mail)
+        if commands.get("invisible"):
+            continue
+        pos, color, size = style["pos"], style["color"], style["size"] * font_size
+        if text.startswith(('@', '＠', '/')):
+            continue
+        ass.add_comment(
+            vpos,
+            date,
+            text,
+            size,
+            pos,
+            color,
+        )
+    if out_filename:
+        return ass.write_to_file(out_filename)
+    return ass.to_string()
+
+
 def process_mailstyle(mail):
     style = {"pos": 0, "size": 1, "color": 0xFFFFFF, "font": "defont"}
     commands = {k: False for k in OTHERS}
@@ -68,7 +178,7 @@ def process_mailstyle(mail):
             commands[mailstyle] = True
         elif match := DURATION_REGEX.match(mailstyle):
             style["duration"] = float(match.group(2) or match.group(4))
-    style["alpha"] = 0.5 if commands.get("_live") else 1
+    style["alpha"] = 0.5 if commands.get("_live") or commands.get("translucent") else 1
     return style, commands
 
 
@@ -144,6 +254,7 @@ OTHERS = {
     "full",
     "ender",
     "_live", # alpha = 0.5
+    "translucent", # alpha = 0.5? niconama
 }
 
 DURATION_REGEX = re.compile(r'^(@(\d+(\.\d+)?)|(\d+)sec)$')

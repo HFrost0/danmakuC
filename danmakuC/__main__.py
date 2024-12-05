@@ -14,12 +14,21 @@ def is_gzip_file(filename: Union[str, os.PathLike]) -> bool:
         return fp.read(2) == gzip_magic
 
 
-def get_convert_func(proto_file: Union[str, os.PathLike], ) -> Callable:
-    if is_gzip_file(proto_file):
+def get_convert_func(file: Union[str, os.PathLike], ) -> Callable:
+    ext = file.split('.')[-1].lower()
+    if ext == "json":
+        return niconico.json2ass
+    if ext == "xml":
+        with open(file, 'rb') as fx:
+            if b"packet" in fx.read(128):
+                return niconico.xml2ass
+            # else:
+            #     return bilibili.xml2ass
+    if is_gzip_file(file):
         open_func = gzip.open
     else:
         open_func = open
-    with open_func(proto_file, mode='rb') as fp:
+    with open_func(file, mode='rb') as fp:
         firstbyte = fp.read(1)
     if firstbyte == b'\x0a':
         convert_func = bilibili.proto2ass
