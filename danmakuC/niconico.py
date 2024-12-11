@@ -3,6 +3,7 @@ import re
 import json
 import xml.etree.ElementTree as ET
 from datetime import datetime
+from functools import lru_cache
 from .ass import Ass
 from .protobuf.niconico import NNDCommentProto
 from typing import Union, Optional
@@ -35,7 +36,8 @@ def proto2ass(
             break
         comment_serialized = proto_file.read(size)
         comment.ParseFromString(comment_serialized)
-        style, commands = process_mailstyle(comment.mail)
+        style = {"pos": 0, "size": 1, "color": 0xFFFFFF, "font": "defont"}
+        style, commands = process_mailstyle(comment.mail, style)
         pos, color, size = style["pos"], style["color"], style["size"] * font_size
         ass.add_comment(
             comment.vpos / 100,
@@ -75,7 +77,7 @@ def json2ass(
         for key in ["data", "threads", "comments"]:
             if key in data:
                 if key == "comments":
-                    frk = data.get("fork", "unknown")
+                    frk = data.get("fork", "")
                 data = data[key]
     if frk is not None:
         commentlist = {frk: data}
@@ -83,22 +85,29 @@ def json2ass(
         commentlist = {}
         for cmt in data:
             if comments := cmt["comments"]:
-                commentlist.setdefault(cmt.get("fork", "unknown"), []).extend(comments)
+                commentlist.setdefault(cmt.get("fork", ""), []).extend(comments)
     else:
-        commentlist = {"unknown": data}
+        commentlist = {"": data}
     for f, comments in commentlist.items():
+        if f == "owner":
+            comments.sort(key=lambda c: c["vposMs"])
         for comment in comments:
             fork = f
             vpos = comment["vposMs"] / 1000
             text = comment["body"]
             unixdate = datetime.fromisoformat(comment["postedAt"]).timestamp()
             mail = comment["commands"]
-            style, commands = process_mailstyle(mail)
+            style = {"pos": 0, "size": 1, "color": 0xFFFFFF, "font": "defont"}
+            if text.startswith(('@', '＠', '/')) and fork == "owner":
+                style, commands = process_mailstyle(mail, style)
+                dr = commands.get("duration", 30)
+                parse_nicoscript(text, vpos, dr, style)
+                continue
+            text, style = process_nicoscript(text, style, vpos, fork)
+            style, commands = process_mailstyle(mail, style)
             if commands.get("invisible"):
                 continue
             pos, color, size = style["pos"], style["color"], style["size"] * font_size
-            if text.startswith(('@', '＠', '/')):
-                continue
             ass.add_comment(
                 vpos,
                 int(unixdate),
@@ -133,17 +142,22 @@ def xml2ass(
     else:
         root = ET.parse(xml_file).getroot()
     for chat in root.findall("chat"):
-        fork = chat.get("fork", "unknown")
+        fork = chat.get("fork", "")
         vpos = int(chat.get("vpos")) / 100
         date = int(chat.get("date"))
         mail = chat.get("mail", '')
         text = chat.text or ''
-        style, commands = process_mailstyle(mail)
+        style = {"pos": 0, "size": 1, "color": 0xFFFFFF, "font": "defont"}
+        if text.startswith(('@', '＠', '/')) and fork == "owner":
+            style, commands = process_mailstyle(mail, style)
+            dr = commands.get("duration", 30)
+            parse_nicoscript(text, vpos, dr, style)
+            continue
+        text, style = process_nicoscript(text, style, vpos, fork)
+        style, commands = process_mailstyle(mail, style)
         if commands.get("invisible"):
             continue
         pos, color, size = style["pos"], style["color"], style["size"] * font_size
-        if text.startswith(('@', '＠', '/')):
-            continue
         ass.add_comment(
             vpos,
             date,
@@ -157,14 +171,15 @@ def xml2ass(
     return ass.to_string()
 
 
-def process_mailstyle(mail):
-    style = {"pos": 0, "size": 1, "color": 0xFFFFFF, "font": "defont"}
+def process_mailstyle(mail: Union[str, list], style: dict):
     commands = {k: False for k in OTHERS}
     if isinstance(mail, str):
         mail = mail.split()
     # only the first command of each type is used, see https://qa.nicovideo.jp/faq/show/6167
     for mailstyle in (m.lower() for m in reversed(mail)):
         if mailstyle in POS_MAPPING:
+            if style["pos"] == 3 and mailstyle == 'naka':
+                continue
             style["pos"] = POS_MAPPING[mailstyle]
         elif mailstyle in SIZE_MAPPING:
             style["size"] = SIZE_MAPPING[mailstyle]
@@ -177,7 +192,7 @@ def process_mailstyle(mail):
         elif mailstyle in OTHERS:
             commands[mailstyle] = True
         elif match := DURATION_REGEX.match(mailstyle):
-            style["duration"] = float(match.group(2) or match.group(4))
+            commands["duration"] = float(match.group(2) or match.group(4))
     style["alpha"] = 0.5 if commands.get("_live") or commands.get("translucent") else 1
     return style, commands
 
@@ -259,3 +274,94 @@ OTHERS = {
 
 DURATION_REGEX = re.compile(r'^(@(\d+(\.\d+)?)|(\d+)sec)$')
 HEX_COLOR_REGEX = re.compile('^#([a-fA-F0-9]{6})$')
+
+
+# https://qa.nicovideo.jp/faq/show/7386
+NAME_PATTERN = re.compile(r'^[＠@](\S+)(?:\s+(.*))?$', re.DOTALL)
+FUNC_PARAMS = {
+            "デフォルト": {},
+            "置換": {
+                "keyword": {
+                    "default": '',
+                },
+                "replacement": {
+                    "default": '',
+                },
+                "range": {
+                    "default": '単',
+                    "values": {'単', '全'},
+                },
+                "target": {
+                    "default": 'コメ',
+                    "values": {'全', 'コメ', '投コメ', '含まない', '含む'},
+                },
+                "condition": {
+                    "default": '部分一致',
+                    "values": {'部分一致', '完全一致'},
+                },
+            },
+            "逆": {"target": {
+                "default": '全',
+                "values": {'全', 'コメ', '投コメ'},}
+            },
+        }
+
+scripts = []
+def parse_nicoscript(text: str, vpos: float, dr: float, style: dict):
+    text = text.replace(r'\n', '\n').replace(r'\t', '\t')
+    match = NAME_PATTERN.match(text.strip())
+    if not match:
+        return
+    func_name = match.group(1)
+    if func_name not in FUNC_PARAMS:
+        return
+    params = FUNC_PARAMS[func_name]
+    result = {key: param.get("default") for key, param in params.items()}
+    if match.group(2):
+        args_string = match.group(2).strip()
+        args = re.findall(r'"[^"]*"|\'[^\']*\'|\S+', args_string)
+        args = [arg.strip('"').strip("'") for arg in args]
+        i = 0
+        for key in params:
+            if i < len(args):
+                value = args[i]
+                if "values" in params[key] and value not in params[key]["values"]:
+                    continue
+                result[key] = value
+                i += 1
+    result["func_name"] = func_name
+    result["style"] = style
+    result["start"] = vpos
+    result["end"] = vpos + dr
+    scripts.append(result)
+
+@lru_cache(maxsize=None)
+def is_target(target: str, fork: str):
+    if target in ["全", "含む"]:
+        return True
+    if target == "コメ" and fork != "owner":
+        return True
+    if target in ["投コメ", "含まない"] and fork == "owner":
+        return True
+    return False
+
+def process_nicoscript(text: str, style: dict, vpos: float, fork: str):
+    for s in (s for s in scripts if s["start"] <= vpos <= s["end"]):
+        if s["func_name"] == "デフォルト":
+            if style != s["style"]:
+                style = s["style"].copy()
+        elif is_target(s["target"], fork):
+            if s["func_name"] == "置換":
+                keyword = s["keyword"]
+                replacement = s["replacement"]
+                if (
+                    (s["condition"] == '部分一致' and keyword in text) or
+                    (s["condition"] == '完全一致' and keyword == text)
+                ):
+                    text = text.replace(keyword, replacement) if s["range"] == '単' else replacement
+                    if style != s["style"]:
+                        style = s["style"].copy()
+            elif s["func_name"] == "逆":
+                style["pos"] = 3
+                # todo: calculations when the comment doesn’t always fly l-to-r
+    return text, style
