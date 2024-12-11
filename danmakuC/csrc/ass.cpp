@@ -293,7 +293,8 @@ public:
                     } else
                         row += free_row || 1; // todo condition is always true?
                 }
-                if (flag && !reduced) {
+                if (flag) {
+                    if (reduced) continue;
                     row = find_alternative_row(rows, c, height, reserve_blank);
                     if (row == 0)
                         unmark_rows(rows, c.mode);
