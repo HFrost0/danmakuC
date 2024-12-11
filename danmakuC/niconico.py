@@ -23,10 +23,11 @@ def proto2ass(
         duration_still: float = 5.0,
         comment_filter: str = "",
         reduced: bool = False,
+        bold: bool = False,
         out_filename: str = "",
 ) -> Optional[str]:
     ass = Ass(width, height, reserve_blank, font_face, font_size, alpha, duration_marquee,
-              duration_still, comment_filter, reduced)
+              duration_still, comment_filter, reduced, bold)
     if isinstance(proto_file, bytes):
         proto_file = io.BytesIO(proto_file)
     comment = NNDCommentProto()
@@ -64,10 +65,11 @@ def json2ass(
         duration_still: float = 5.0,
         comment_filter: str = "",
         reduced: bool = False,
+        bold: bool = False,
         out_filename: str = "",
 ) -> Optional[str]:
     ass = Ass(width, height, reserve_blank, font_face, font_size, alpha, duration_marquee,
-              duration_still, comment_filter, reduced)
+              duration_still, comment_filter, reduced, bold)
     if isinstance(json_file, (str, bytes)):
         data = json.loads(json_file)
     else:
@@ -133,10 +135,11 @@ def xml2ass(
         duration_still: float = 5.0,
         comment_filter: str = "",
         reduced: bool = False,
+        bold: bool = False,
         out_filename: str = "",
 ) -> Optional[str]:
     ass = Ass(width, height, reserve_blank, font_face, font_size, alpha, duration_marquee,
-              duration_still, comment_filter, reduced)
+              duration_still, comment_filter, reduced, bold)
     if isinstance(xml_file, (str, bytes)):
         root = ET.fromstring(xml_file)
     else:

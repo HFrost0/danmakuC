@@ -78,6 +78,7 @@ def main():
     #     "-flf", "--filter-file", help="Regular expressions from file (one line one regex) to filter comments"
     # )
     parser.add_argument("-r", "--reduce", action="store_true", help="Reduce the amount of comments if stage is full")
+    parser.add_argument("-b", "--bold", action="store_true", help="Enable boldface for comments")
     parser.add_argument("-v", "--version", action="version", version=f"version {__version__}")
     # parse args
     args = parser.parse_args()
@@ -98,6 +99,7 @@ def main():
             args.duration_still,
             args.filter,
             args.reduce,
+            args.bold,
             out_filename=args.output,
         )
     if res is not None:
