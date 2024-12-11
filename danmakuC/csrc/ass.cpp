@@ -156,6 +156,14 @@ string convert_color(int RGB, int width = 1280, int height = 576) {
         );
 }
 
+string convert_alpha(float alpha) {
+    if (alpha <= 0.0)
+        return "FF";
+    if (alpha >= 1.0)
+        return "00";
+    return fmt::format("{:02X}", int(round((1.0 - alpha) * 255.0)));
+}
+
 string convert_progress(float progress) {
     float timestamp = round(progress * 100.0);
     auto [hour, x1] = div(timestamp, 360000);
@@ -208,11 +216,11 @@ public:
                            "[V4+ Styles]\n"
                            "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n"
                            // todo stylid
-                           "Style: danmakuC, {2}, {3:.0f}, &H{4:02X}FFFFFF, &H{4:02X}FFFFFF, &H{4:02X}000000, &H{4:02X}000000, {5}, 0, 0, 0, 100, 100, 0.00, 0.00, 1, {6:.0f}, 0, 7, 0, 0, 0, 0\n"
+                           "Style: danmakuC, {2}, {3:.0f}, &H{4}FFFFFF, &H{4}FFFFFF, &H{4}000000, &H{4}000000, {5}, 0, 0, 0, 100, 100, 0.00, 0.00, 1, {6:.0f}, 0, 7, 0, 0, 0, 0\n"
                            "\n"
                            "[Events]\n"
                            "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n",
-                           width, height, font_face, font_size, int(round(1 - alpha)) * 255,
+                           width, height, font_face, font_size, convert_alpha(alpha),
                            bold? -1:0, max(font_size / 25.0, 1.0));
         // bili_player_size = {512, 384}  // Bilibili player version 2010
         // bili_player_size = {540, 384}  // Bilibili player version 2012
