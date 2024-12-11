@@ -238,8 +238,12 @@ public:
             return false;
         // calculate extra filed
         Comment comment = Comment(progress, ctime, content, fontsize, mode, color);
+
+        // ASS renders typically ignore tab characters
+        const string FULL_WIDTH_SPACE = "\xe3\x80\x80"; // U+3000
+        boost::replace_all(comment.content, "\t", FULL_WIDTH_SPACE + FULL_WIDTH_SPACE);
+        
         if (comment.mode != 4) {
-            comment.content = ass_escape(comment.content);
             comment.size = int(comment.font_size) * font_size / 25.0;
             vector<string> parts;
             boost::split(parts, comment.content, boost::is_any_of("\n"));
@@ -254,6 +258,7 @@ public:
         } else
             // bilipos comment
             comment.size = comment.font_size, comment.part_size = 0, comment.max_len = 0;
+        comment.content = ass_escape(comment.content);
         comments.push_back(comment);
         return true;
     }
