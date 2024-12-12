@@ -132,28 +132,15 @@ string ass_escape(string s) {
     return ZERO_WIDTH_SPACE + s2 + ZERO_WIDTH_SPACE;
 }
 
-int clip_byte(float x) {
-    if (x > 255) return 255;
-    else if (x < 0) return 0;
-    else return round(x);
-}
-
-string convert_color(int RGB, int width = 1280, int height = 576) {
+string convert_color(int RGB) {
     if (RGB == 0x000000)
         return "000000";
-    else if (RGB == 0xFFFFFF)
+    if (RGB == 0xFFFFFF)
         return "FFFFFF";
     int R = (RGB >> 16) & 0xFF;
     int G = (RGB >> 8) & 0xFF;
     int B = RGB & 0xFF;
-    if (width < 1280 and height < 576)
-        return fmt::format("{:02X}{:02X}{:02X}", B, G, R);
-    else
-        return fmt::format("{:02X}{:02X}{:02X}",
-                           clip_byte(R * 0.00956384088080656 + G * 0.03217254540203729 + B * 0.95826361371715607),
-                           clip_byte(R * -0.10493933142075390 + G * 1.17231478191855154 + B * -0.06737545049779757),
-                           clip_byte(R * 0.91348912373987645 + G * 0.07858536372532510 + B * 0.00792551253479842)
-        );
+    return fmt::format("{:02X}{:02X}{:02X}", B, G, R);
 }
 
 string convert_alpha(float alpha) {
@@ -211,7 +198,7 @@ public:
                            "Collisions: Normal\n"
                            "WrapStyle: 2\n"
                            "ScaledBorderAndShadow: yes\n"
-                           "YCbCr Matrix: TV.601\n"
+                           "YCbCr Matrix: None\n"
                            "\n"
                            "[V4+ Styles]\n"
                            "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n"
