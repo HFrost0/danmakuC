@@ -261,7 +261,7 @@ public:
         /// 1. clear body first
         body = "";
         /// 2. sort before find row
-        sort(comments.begin(), comments.end(), [](Comment& a, Comment& b) -> bool {
+        stable_sort(comments.begin(), comments.end(), [](const Comment& a, const Comment& b) -> bool {
             if (a.progress != b.progress)
                 return a.progress < b.progress;
             else
