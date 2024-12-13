@@ -14,6 +14,7 @@ using namespace std;
 class Comment {
 public:
     float progress;
+    float duration;
     int ctime;
     string content;
     float font_size;
@@ -31,13 +32,14 @@ public:
     Comment() = delete;
 
     Comment(float progress,
+            float duration,
             int ctime,
             string content,
             float font_size,
             int mode,
             int color,
             int pool = 0
-    ) : progress(progress), ctime(ctime), content(content), font_size(font_size), mode(mode), color(color), pool(pool) {}
+    ) : progress(progress), duration(duration), ctime(ctime), content(content), font_size(font_size), mode(mode), color(color), pool(pool) {}
 };
 
 size_t utf8_len(const string& utf8) {
@@ -65,8 +67,7 @@ void unmark_rows(vector<vector<Comment*>>& rows, int mode) {
         rows[mode][i] = nullptr;
 }
 
-int test_free_row(vector<vector<Comment*>>& rows, Comment& c, int row, int width, int height,
-                  int reserve_blank, float duration_marquee, float duration_still) {
+int test_free_row(vector<vector<Comment*>>& rows, Comment& c, int row, int width, int height, int reserve_blank) {
     int res = 0;
     int row_max = height - reserve_blank;
     Comment* target_row = nullptr;
@@ -74,7 +75,11 @@ int test_free_row(vector<vector<Comment*>>& rows, Comment& c, int row, int width
         while (row < row_max && res < c.part_size) {
             if (target_row != rows[c.mode][row]) {
                 target_row = rows[c.mode][row];
-                if (target_row != nullptr && target_row->progress + duration_still > c.progress)
+                // Niconico appears to allow a slight overlap for still comments
+                // Example: https://www.nicovideo.jp/watch/sm31436903
+                // Refer to 2:18 ~ 2:21, comment no.415 ("に") and no.433 ("に"), vpos: 138.80s and 141.71s, duration: 3.0s
+                // Set the tolerance to 0.1s for now
+                if (target_row != nullptr && target_row->progress + target_row->duration - 0.1 > c.progress)
                     break;
             }
             row++;
@@ -84,16 +89,16 @@ int test_free_row(vector<vector<Comment*>>& rows, Comment& c, int row, int width
         int div = c.max_len + width;
         float threshold_time;
         if (div != 0)
-            threshold_time = c.progress - duration_marquee * (1 - width / float(div));
+            threshold_time = c.progress - c.duration * (1 - width / float(div));
         else
-            threshold_time = c.progress - duration_marquee;
+            threshold_time = c.progress - c.duration;
         while (row < row_max && res < c.part_size) {
             if (target_row != rows[c.mode][row]) {
                 target_row = rows[c.mode][row];
                 if (target_row != nullptr) {
                     div = target_row->max_len + width;
                     if (div != 0 && (target_row->progress > threshold_time ||
-                                     target_row->progress + target_row->max_len * duration_marquee / div > c.progress))
+                                    target_row->progress + target_row->max_len * target_row->duration / div > c.progress))
                         break;
                 }
             }
@@ -227,13 +232,15 @@ public:
         // content regex filter
         if (filter != "" && regex_search(content, regex(filter)))
             return false;
-        // calculate extra filed
-        Comment comment = Comment(progress, ctime, content, fontsize, mode, color, pool);
+        
+        float duration = (mode == 1 || mode == 2)? duration_still : duration_marquee;
+        Comment comment = Comment(progress, duration, ctime, content, fontsize, mode, color, pool);
 
         // ASS renders typically ignore tab characters
         const string FULL_WIDTH_SPACE = "\xe3\x80\x80"; // U+3000
         boost::replace_all(comment.content, "\t", FULL_WIDTH_SPACE + FULL_WIDTH_SPACE);
-        
+
+        // calculate extra filed
         if (comment.mode != 4) {
             comment.size = int(comment.font_size) * font_size / 25.0;
             vector<string> parts;
@@ -292,7 +299,7 @@ public:
                     bool flag = true;
                     while (row <= row_max) {
                         int free_row = test_free_row(rows[c.pool], c, row,
-                                                    width, height, reserve_blank, duration_marquee, duration_still);
+                                                    width, height, reserve_blank);
                         if (free_row >= c.part_size) {
                             mark_comment_row(rows[c.pool], c, row);
                             flag = false;
@@ -318,7 +325,6 @@ public:
 
     void write_comment(Comment& c, std::ofstream* out_fp = nullptr) {
         vector<string> styles;
-        float duration;
         switch (c.mode) {
             case 1: {
                 if (c.lines > 1)
@@ -327,7 +333,6 @@ public:
                 else
                     styles.push_back(fmt::format("\\an8\\pos({}, {})",
                                              width / 2, c.row));
-                duration = duration_still;
                 break;
             }
             case 2: {
@@ -337,7 +342,6 @@ public:
                 else
                     styles.push_back(fmt::format("\\an2\\pos({}, {})",
                                              width / 2, convert_type2(c.row, height, reserve_blank)));
-                duration = duration_still;
                 break;
             }
             case 3: {
@@ -345,7 +349,6 @@ public:
                     styles.push_back("\\an4");
                 styles.push_back(fmt::format("\\move({2}, {1}, {0}, {1})",
                                              width, c.row, -ceil(c.max_len)));
-                duration = duration_marquee;
                 break;
             }
             default: {
@@ -353,7 +356,6 @@ public:
                     styles.push_back("\\an4");
                 styles.push_back(fmt::format("\\move({0}, {1}, {2}, {1})",
                                              width, c.row, -ceil(c.max_len)));
-                duration = duration_marquee;
             }
         }
         float size = c.size - font_size;
@@ -366,7 +368,7 @@ public:
         }
         string line = fmt::format("Dialogue: 2,{0},{1},danmakuC,,0000,0000,0000,,{{{2}}}{3}\n",
                                   convert_progress(c.progress),
-                                  convert_progress(c.progress + duration),
+                                  convert_progress(c.progress + c.duration),
                                   boost::algorithm::join(styles, ""),
                                   c.content
         );
