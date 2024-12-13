@@ -25,6 +25,7 @@ public:
     float part_size;
     float max_len;
     int row;
+    int lines = 1;
     int align = 0;
 
     Comment() = delete;
@@ -237,7 +238,8 @@ public:
             comment.size = int(comment.font_size) * font_size / 25.0;
             vector<string> parts;
             boost::split(parts, comment.content, boost::is_any_of("\n"));
-            comment.part_size = comment.size * parts.size();
+            comment.lines = parts.size();
+            comment.part_size = comment.size * comment.lines;
             int max_len = 0;
             for (string& p: parts) {
                 int part_len = utf8_len(p);
@@ -319,13 +321,21 @@ public:
         float duration;
         switch (c.mode) {
             case 1: {
-                styles.push_back(fmt::format("\\an8\\pos({}, {})",
+                if (c.lines > 1)
+                    styles.push_back(fmt::format("\\pos({:.0f}, {})",
+                                             (width - c.max_len) / 2, c.row));
+                else
+                    styles.push_back(fmt::format("\\an8\\pos({}, {})",
                                              width / 2, c.row));
                 duration = duration_still;
                 break;
             }
             case 2: {
-                styles.push_back(fmt::format("\\an2\\pos({}, {})",
+                if (c.lines > 1)
+                    styles.push_back(fmt::format("\\an1\\pos({:.0f}, {})",
+                                             (width - c.max_len) / 2, convert_type2(c.row, height, reserve_blank)));
+                else
+                    styles.push_back(fmt::format("\\an2\\pos({}, {})",
                                              width / 2, convert_type2(c.row, height, reserve_blank)));
                 duration = duration_still;
                 break;
