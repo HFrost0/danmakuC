@@ -15,7 +15,7 @@ class Ass:
                  bold: bool = False,
                 ): ...
 
-    def add_comment(self, progress: float, ctime: int, content: str, font_size: float, mode: int, color: int) -> bool:
+    def add_comment(self, progress: float, ctime: int, content: str, font_size: float, mode: int, color: int, pool: int) -> bool:
         """add a comment to Ass object, return True if add success"""
         ...
 

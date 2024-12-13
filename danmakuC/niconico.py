@@ -37,6 +37,7 @@ def proto2ass(
             break
         comment_serialized = proto_file.read(size)
         comment.ParseFromString(comment_serialized)
+        pool = 1 if comment.fork == "owner" else 0
         style = {"pos": 0, "size": 1, "color": 0xFFFFFF, "font": "defont"}
         style, commands = process_mailstyle(comment.mail, style)
         pos, color, size = style["pos"], style["color"], style["size"] * font_size
@@ -47,6 +48,7 @@ def proto2ass(
             size,
             pos,
             color,
+            pool,
         )
     if out_filename:
         return ass.write_to_file(out_filename)
@@ -93,6 +95,9 @@ def json2ass(
     for f, comments in commentlist.items():
         if f == "owner":
             comments.sort(key=lambda c: c["vposMs"])
+            pool = 1
+        else:
+            pool = 0
         for comment in comments:
             fork = f
             vpos = comment["vposMs"] / 1000
@@ -117,6 +122,7 @@ def json2ass(
                 size,
                 pos,
                 color,
+                pool,
             )
     if out_filename:
         return ass.write_to_file(out_filename)
@@ -146,6 +152,7 @@ def xml2ass(
         root = ET.parse(xml_file).getroot()
     for chat in root.findall("chat"):
         fork = chat.get("fork", "")
+        pool = 1 if fork == "owner" else 0
         vpos = int(chat.get("vpos")) / 100
         date = int(chat.get("date"))
         mail = chat.get("mail", '')
@@ -168,6 +175,7 @@ def xml2ass(
             size,
             pos,
             color,
+            pool,
         )
     if out_filename:
         return ass.write_to_file(out_filename)

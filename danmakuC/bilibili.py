@@ -43,6 +43,7 @@ def proto2ass(
                 elem.fontsize,
                 mode_map[elem.mode],
                 elem.color,
+                elem.pool
             )
         except TypeError:
             # TypeError: incase integer overflow https://github.com/HFrost0/bilix/issues/102

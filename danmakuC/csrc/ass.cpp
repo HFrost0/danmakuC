@@ -19,6 +19,7 @@ public:
     float font_size;
     int mode;
     int color;
+    int pool;
     // others
     float size;
     float part_size;
@@ -32,8 +33,9 @@ public:
             string content,
             float font_size,
             int mode,
-            int color
-    ) : progress(progress), ctime(ctime), content(content), font_size(font_size), mode(mode), color(color) {}
+            int color,
+            int pool = 0
+    ) : progress(progress), ctime(ctime), content(content), font_size(font_size), mode(mode), color(color), pool(pool) {}
 };
 
 size_t utf8_len(const string& utf8) {
@@ -217,14 +219,14 @@ public:
         zoom_factor = get_zoom_factor(bili_player_size, target_size);
     }
 
-    bool add_comment(float progress, int ctime, const string& content, float fontsize, int mode, int color) {
+    bool add_comment(float progress, int ctime, const string& content, float fontsize, int mode, int color, int pool) {
         // need clear
         need_clear = true;
         // content regex filter
         if (filter != "" && regex_search(content, regex(filter)))
             return false;
         // calculate extra filed
-        Comment comment = Comment(progress, ctime, content, fontsize, mode, color);
+        Comment comment = Comment(progress, ctime, content, fontsize, mode, color, pool);
 
         // ASS renders typically ignore tab characters
         const string FULL_WIDTH_SPACE = "\xe3\x80\x80"; // U+3000
@@ -268,7 +270,7 @@ public:
                 return a.ctime < b.ctime;
         });
         /// 3. find row
-        vector<vector<Comment*>> rows(4, vector<Comment*>(height - reserve_blank + 1, nullptr));
+        vector<vector<vector<Comment*>>> rows(3, vector<vector<Comment*>>(4, vector<Comment*>(height - reserve_blank + 1, nullptr)));
         for (size_t idx = 0; idx < comments.size(); ++idx) {
             Comment& c = comments[idx];
             if (c.mode != 4) {  // not a bilipos
@@ -276,10 +278,10 @@ public:
                 int row_max = height - reserve_blank - c.part_size;
                 bool flag = true;
                 while (row <= row_max) {
-                    int free_row = test_free_row(rows, c, row,
+                    int free_row = test_free_row(rows[c.pool], c, row,
                                                  width, height, reserve_blank, duration_marquee, duration_still);
                     if (free_row >= c.part_size) {
-                        mark_comment_row(rows, c, row);
+                        mark_comment_row(rows[c.pool], c, row);
                         flag = false;
                         break;
                     } else
@@ -287,10 +289,10 @@ public:
                 }
                 if (flag) {
                     if (reduced) continue;
-                    row = find_alternative_row(rows, c, height, reserve_blank);
+                    row = find_alternative_row(rows[c.pool], c, height, reserve_blank);
                     if (row == 0)
-                        unmark_rows(rows, c.mode);
-                    mark_comment_row(rows, c, row);
+                        unmark_rows(rows[c.pool], c.mode);
+                    mark_comment_row(rows[c.pool], c, row);
                 }
                 c.row = row;
                 write_comment(c, out_fp);
