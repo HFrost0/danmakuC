@@ -25,6 +25,7 @@ public:
     float part_size;
     float max_len;
     int row;
+    int align = 0;
 
     Comment() = delete;
 
@@ -276,25 +277,36 @@ public:
             if (c.mode != 4) {  // not a bilipos
                 int row = 0;
                 int row_max = height - reserve_blank - c.part_size;
-                bool flag = true;
-                while (row <= row_max) {
-                    int free_row = test_free_row(rows[c.pool], c, row,
-                                                 width, height, reserve_blank, duration_marquee, duration_still);
-                    if (free_row >= c.part_size) {
-                        mark_comment_row(rows[c.pool], c, row);
-                        flag = false;
-                        break;
+                // Keep the row value fixed if the partsize exceeds stage height
+                // https://w.atwiki.jp/commentart2/pages/31.html ③高さ固定
+                if (row_max <= 0) {
+                    if (c.mode == 0 || c.mode == 3) {
+                        c.row = (height - reserve_blank) / 2;
+                        c.align = 4;
                     } else
-                        row += free_row || 1; // todo condition is always true?
+                        c.row = 0;
                 }
-                if (flag) {
-                    if (reduced) continue;
-                    row = find_alternative_row(rows[c.pool], c, height, reserve_blank);
-                    if (row == 0)
-                        unmark_rows(rows[c.pool], c.mode);
-                    mark_comment_row(rows[c.pool], c, row);
+                else {
+                    bool flag = true;
+                    while (row <= row_max) {
+                        int free_row = test_free_row(rows[c.pool], c, row,
+                                                    width, height, reserve_blank, duration_marquee, duration_still);
+                        if (free_row >= c.part_size) {
+                            mark_comment_row(rows[c.pool], c, row);
+                            flag = false;
+                            break;
+                        } else
+                            row += free_row || 1; // todo condition is always true?
+                    }
+                    if (flag) {
+                        if (reduced) continue;
+                        row = find_alternative_row(rows[c.pool], c, height, reserve_blank);
+                        if (row == 0)
+                            unmark_rows(rows[c.pool], c.mode);
+                        mark_comment_row(rows[c.pool], c, row);
+                    }
+                    c.row = row;
                 }
-                c.row = row;
                 write_comment(c, out_fp);
             } else
                 write_bilipos_comment(c, out_fp);
@@ -319,12 +331,16 @@ public:
                 break;
             }
             case 3: {
+                if (c.align == 4)
+                    styles.push_back("\\an4");
                 styles.push_back(fmt::format("\\move({2}, {1}, {0}, {1})",
                                              width, c.row, -ceil(c.max_len)));
                 duration = duration_marquee;
                 break;
             }
             default: {
+                if (c.align == 4)
+                    styles.push_back("\\an4");
                 styles.push_back(fmt::format("\\move({0}, {1}, {2}, {1})",
                                              width, c.row, -ceil(c.max_len)));
                 duration = duration_marquee;
