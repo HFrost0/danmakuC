@@ -334,7 +334,7 @@ public:
         if (c.color != 0xFFFFFF) {
             styles.push_back(fmt::format("\\c&H{}&", convert_color(c.color)));
             if (c.color == 0x000000)
-                styles.push_back("\\3c&HFFFFFF&");
+                styles.push_back("\\3c&H666666&");
         }
         string line = fmt::format("Dialogue: 2,{0},{1},danmakuC,,0000,0000,0000,,{{{2}}}{3}\n",
                                   convert_progress(c.progress),
