@@ -40,7 +40,7 @@ def proto2ass(
                 elem.progress / 1000,  # 视频内出现的时间
                 elem.ctime,  # 弹幕的发送时间（时间戳）
                 elem.content,
-                elem.fontsize,
+                elem.fontsize / 25.0,
                 mode_map[elem.mode],
                 elem.color,
                 elem.pool

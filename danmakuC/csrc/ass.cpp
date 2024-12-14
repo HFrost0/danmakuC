@@ -17,12 +17,11 @@ public:
     float duration;
     int ctime;
     string content;
-    float font_size;
+    float size;
     int mode;
     int color;
     int pool;
     // others
-    float size;
     float part_size;
     float max_len;
     int row;
@@ -35,11 +34,11 @@ public:
             float duration,
             int ctime,
             string content,
-            float font_size,
+            float size,
             int mode,
             int color,
             int pool = 0
-    ) : progress(progress), duration(duration), ctime(ctime), content(content), font_size(font_size), mode(mode), color(color), pool(pool) {}
+    ) : progress(progress), duration(duration), ctime(ctime), content(content), size(size), mode(mode), color(color), pool(pool) {}
 };
 
 size_t utf8_len(const string& utf8) {
@@ -226,7 +225,7 @@ public:
         zoom_factor = get_zoom_factor(bili_player_size, target_size);
     }
 
-    bool add_comment(float progress, int ctime, const string& content, float fontsize, int mode, int color, int pool) {
+    bool add_comment(float progress, int ctime, const string& content, float size_factor, int mode, int color, int pool) {
         // need clear
         need_clear = true;
         // content regex filter
@@ -234,7 +233,7 @@ public:
             return false;
         
         float duration = (mode == 1 || mode == 2)? duration_still : duration_marquee;
-        Comment comment = Comment(progress, duration, ctime, content, fontsize, mode, color, pool);
+        Comment comment = Comment(progress, duration, ctime, content, font_size * size_factor, mode, color, pool);
 
         // ASS renders typically ignore tab characters
         const string FULL_WIDTH_SPACE = "\xe3\x80\x80"; // U+3000
@@ -242,7 +241,6 @@ public:
 
         // calculate extra filed
         if (comment.mode != 4) {
-            comment.size = int(comment.font_size) * font_size / 25.0;
             vector<string> parts;
             boost::split(parts, comment.content, boost::is_any_of("\n"));
             comment.lines = parts.size();
@@ -256,7 +254,7 @@ public:
             comment.max_len = max_len * comment.size;
         } else
             // bilipos comment
-            comment.size = comment.font_size, comment.part_size = 0, comment.max_len = 0;
+            comment.size = 25.0 * size_factor, comment.part_size = 0, comment.max_len = 0;
         comment.content = ass_escape(comment.content);
         comments.push_back(comment);
         return true;

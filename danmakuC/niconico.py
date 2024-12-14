@@ -40,7 +40,7 @@ def proto2ass(
         pool = 1 if comment.fork == "owner" else 0
         style = {"pos": 0, "size": 1, "color": 0xFFFFFF, "font": "defont"}
         style, commands = process_mailstyle(comment.mail, style)
-        pos, color, size = style["pos"], style["color"], style["size"] * font_size
+        pos, color, size = style["pos"], style["color"], style["size"]
         ass.add_comment(
             comment.vpos / 100,
             comment.date,
@@ -114,7 +114,7 @@ def json2ass(
             style, commands = process_mailstyle(mail, style)
             if commands.get("invisible"):
                 continue
-            pos, color, size = style["pos"], style["color"], style["size"] * font_size
+            pos, color, size = style["pos"], style["color"], style["size"]
             ass.add_comment(
                 vpos,
                 int(unixdate),
@@ -167,7 +167,7 @@ def xml2ass(
         style, commands = process_mailstyle(mail, style)
         if commands.get("invisible"):
             continue
-        pos, color, size = style["pos"], style["color"], style["size"] * font_size
+        pos, color, size = style["pos"], style["color"], style["size"]
         ass.add_comment(
             vpos,
             date,
