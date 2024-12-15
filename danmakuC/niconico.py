@@ -125,6 +125,8 @@ def json2ass(
                 pos,
                 color,
                 pool,
+                commands["full"],
+                commands["ender"]
             )
     if out_filename:
         return ass.write_to_file(out_filename)
@@ -180,6 +182,8 @@ def xml2ass(
             pos,
             color,
             pool,
+            commands["full"],
+            commands["ender"]
         )
     if out_filename:
         return ass.write_to_file(out_filename)

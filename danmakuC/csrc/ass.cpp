@@ -44,6 +44,28 @@ public:
         vpos = progress;
     }
 
+    // https://w.atwiki.jp/commentart2/pages/31.html
+    void resize(int height, bool full, bool ender) {
+        int width = full ? height * 16.0/9.0 : height * 4.0/3.0;
+        float r = 1.0;
+        bool vertical_resize;
+        bool horizen_resize;
+
+        vertical_resize = ender ? false : part_size > height/3.0;
+        if (vertical_resize)
+            r = 0.5;
+        horizen_resize = (mode==1 || mode==2) ? max_len * r > width : false;
+        if (vertical_resize && horizen_resize)
+            return;
+        if (!vertical_resize && !horizen_resize)
+            return;
+        if (horizen_resize)
+            r = width / max_len;
+        
+        size *= r;
+        max_len *= r;
+        part_size *= r;
+    }
     
     // https://w.atwiki.jp/commentart2/pages/39.html
     void retime(int width, int height, float dm) {
@@ -318,7 +340,8 @@ public:
         return true;
     }
 
-    bool add_nico_comment(float progress, float duration, int ctime, const string& content, float size_factor, int mode, int color, int pool) {
+    bool add_nico_comment(float progress, float duration, int ctime, const string& content, float size_factor, int mode, int color,
+                        int pool, bool full, bool ender) {
         // need clear
         need_clear = true;
         // content regex filter
@@ -343,7 +366,8 @@ public:
                 max_len = part_len;
         }
         comment.max_len = max_len * comment.size;
-
+        //resize
+        comment.resize(height, full, ender);
         // retime
         if (mode == 0 || mode == 3)
             comment.retime(width, height, duration_marquee);
