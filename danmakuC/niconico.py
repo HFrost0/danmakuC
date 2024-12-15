@@ -115,8 +115,10 @@ def json2ass(
             if commands.get("invisible"):
                 continue
             pos, color, size = style["pos"], style["color"], style["size"]
-            ass.add_comment(
+            dr = commands.get("duration") or (duration_still if pos in [1, 2] else duration_marquee)
+            ass.add_nico_comment(
                 vpos,
+                dr,
                 int(unixdate),
                 text,
                 size,
@@ -168,8 +170,10 @@ def xml2ass(
         if commands.get("invisible"):
             continue
         pos, color, size = style["pos"], style["color"], style["size"]
-        ass.add_comment(
+        dr = commands.get("duration") or (duration_still if pos in [1, 2] else duration_marquee)
+        ass.add_nico_comment(
             vpos,
+            dr,
             date,
             text,
             size,

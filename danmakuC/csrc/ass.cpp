@@ -22,11 +22,13 @@ public:
     int color;
     int pool;
     // others
+    float vpos;
     float part_size;
     float max_len;
     int row;
     int lines = 1;
     int align = 0;
+    float delta_l = 0;
 
     Comment() = delete;
 
@@ -38,7 +40,63 @@ public:
             int mode,
             int color,
             int pool = 0
-    ) : progress(progress), duration(duration), ctime(ctime), content(content), size(size), mode(mode), color(color), pool(pool) {}
+    ) : progress(progress), duration(duration), ctime(ctime), content(content), size(size), mode(mode), color(color), pool(pool) {
+        vpos = progress;
+    }
+
+    
+    // https://w.atwiki.jp/commentart2/pages/39.html
+    void retime(int width, int height, float dm) {
+        /*
+            The duration of scrolling comments on Niconico are based
+            on the 4:3 aspect ratio, regardless of the actual stage width.
+            Using the vpos attribute as the reference time 0, a comment
+            first appears at the edge of the stage (in 4:3 mode) at time 0 - t.
+            When a comment is sent, it appears at a position that has already
+            traveled a certain distance, and this is considered time 0.
+
+            For normal scrolling comments, t equals 1 seconds. However, it is unclear
+            whether t remains 1 for comments with a specified duration (via an @ command),
+            or how it is calculated if not.
+            (Based on my personal testing, t=1 gives the most accurate result.)
+            Anyway, a retime is needed when converting a Niconico comment file to ASS.
+            Additionally, an extra delta_l needs to be calculated in the following two cases:
+            1. At the start of the video
+            2. Near the end of the video (a video length parameter is required)
+        */
+        float t = 1;
+        int width_43 = height * 4.0 / 3;
+        float speed = (width_43 + max_len) / (duration + t);
+        duration = (width + max_len) / speed;
+        float dt = 0.5 * (width - width_43) / speed + t;
+        if (progress >= dt)
+            progress -= dt;
+        else {
+            delta_l = (dt - progress) * speed;
+            duration -= dt - progress;
+            progress = 0;
+        }
+
+        // todo: reverse
+        /*
+        if (mode == 3) {
+            // not always l-to-r
+            if ((reverse_start > 0 && reverse_end > 0) || !(vpos >= reverse_start && vpos_end <= reverse_end))  { 
+                // r-to-l, then l-to-r
+                if (vpos < reverse_start && vpos_end <= reverse_end) {
+                    duration = (reverse_start - progress) * 2;
+                }
+                // l-to-r, then r-to-l
+                else if (vpos >= reverse_start && vpos_end > reverse_end) {
+                    duration = (reverse_end - progress) * 2;
+                }
+                // r-to-l, then l-to-r, finally r-to-l
+                else {
+                    duration += (reverse_end - reverse_start) * 2;
+                }
+            }
+        }*/
+    }
 };
 
 size_t utf8_len(const string& utf8) {
@@ -260,6 +318,40 @@ public:
         return true;
     }
 
+    bool add_nico_comment(float progress, float duration, int ctime, const string& content, float size_factor, int mode, int color, int pool) {
+        // need clear
+        need_clear = true;
+        // content regex filter
+        if (filter != "" && regex_search(content, regex(filter)))
+            return false;
+        
+        Comment comment = Comment(progress, duration, ctime, content, font_size * size_factor, mode, color, pool);
+
+        // ASS renders typically ignore tab characters
+        const string FULL_WIDTH_SPACE = "\xe3\x80\x80"; // U+3000
+        boost::replace_all(comment.content, "\t", FULL_WIDTH_SPACE + FULL_WIDTH_SPACE);
+
+        // calculate extra filed
+        vector<string> parts;
+        boost::split(parts, comment.content, boost::is_any_of("\n"));
+        comment.lines = parts.size();
+        comment.part_size = comment.size * comment.lines;
+        int max_len = 0;
+        for (string& p: parts) {
+            int part_len = utf8_len(p);
+            if (part_len > max_len)
+                max_len = part_len;
+        }
+        comment.max_len = max_len * comment.size;
+
+        // retime
+        if (mode == 0 || mode == 3)
+            comment.retime(width, height, duration_marquee);
+        comment.content = ass_escape(comment.content);
+        comments.push_back(comment);
+        return true;
+    }
+
     string to_string() {
         if (body == "" || need_clear) {
             write_comments();
@@ -272,8 +364,8 @@ public:
         body = "";
         /// 2. sort before find row
         stable_sort(comments.begin(), comments.end(), [](const Comment& a, const Comment& b) -> bool {
-            if (a.progress != b.progress)
-                return a.progress < b.progress;
+            if (a.vpos != b.vpos)
+                return a.vpos < b.vpos;
             else
                 return a.ctime < b.ctime;
         });
@@ -345,15 +437,15 @@ public:
             case 3: {
                 if (c.align == 4)
                     styles.push_back("\\an4");
-                styles.push_back(fmt::format("\\move({2}, {1}, {0}, {1})",
-                                             width, c.row, -ceil(c.max_len)));
+                styles.push_back(fmt::format("\\move({2:.0f}, {1}, {0}, {1})",
+                                             width, c.row, c.delta_l - c.max_len));
                 break;
             }
             default: {
                 if (c.align == 4)
                     styles.push_back("\\an4");
-                styles.push_back(fmt::format("\\move({0}, {1}, {2}, {1})",
-                                             width, c.row, -ceil(c.max_len)));
+                styles.push_back(fmt::format("\\move({0:.0f}, {1}, {2}, {1})",
+                                             width - c.delta_l, c.row, -c.max_len));
             }
         }
         float size = c.size - font_size;
@@ -404,6 +496,7 @@ PYBIND11_MODULE(ass, m) {
     py::class_<Ass>(m, "Ass")
             .def(py::init<int, int, int, const string&, float, float, float, float, string, bool, bool>())
             .def("add_comment", &Ass::add_comment)
+            .def("add_nico_comment", &Ass::add_nico_comment)
             .def("to_string", &Ass::to_string)
             .def("write_to_file", &Ass::write_to_file);
 }
