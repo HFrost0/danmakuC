@@ -24,10 +24,11 @@ def proto2ass(
         comment_filter: str = "",
         reduced: bool = False,
         bold: bool = False,
+        live: bool = False,
         out_filename: str = "",
 ) -> Optional[str]:
     ass = Ass(width, height, reserve_blank, font_face, font_size, alpha, duration_marquee,
-              duration_still, comment_filter, reduced, bold)
+              duration_still, comment_filter, reduced, bold, live)
     if isinstance(proto_file, bytes):
         proto_file = io.BytesIO(proto_file)
     comment = NNDCommentProto()
@@ -68,10 +69,11 @@ def json2ass(
         comment_filter: str = "",
         reduced: bool = False,
         bold: bool = False,
+        live: bool = False,
         out_filename: str = "",
 ) -> Optional[str]:
     ass = Ass(width, height, reserve_blank, font_face, font_size, alpha, duration_marquee,
-              duration_still, comment_filter, reduced, bold)
+              duration_still, comment_filter, reduced, bold, live)
     if isinstance(json_file, (str, bytes)):
         data = json.loads(json_file)
     else:
@@ -125,7 +127,7 @@ def json2ass(
                 pos,
                 color,
                 pool,
-                commands["full"],
+                live or commands["full"],
                 commands["ender"]
             )
     if out_filename:
@@ -146,10 +148,11 @@ def xml2ass(
         comment_filter: str = "",
         reduced: bool = False,
         bold: bool = False,
+        live: bool = False,
         out_filename: str = "",
 ) -> Optional[str]:
     ass = Ass(width, height, reserve_blank, font_face, font_size, alpha, duration_marquee,
-              duration_still, comment_filter, reduced, bold)
+              duration_still, comment_filter, reduced, bold, live)
     if isinstance(xml_file, (str, bytes)):
         root = ET.fromstring(xml_file)
     else:
@@ -182,7 +185,7 @@ def xml2ass(
             pos,
             color,
             pool,
-            commands["full"],
+            live or commands["full"],
             commands["ender"]
         )
     if out_filename:

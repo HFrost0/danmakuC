@@ -21,10 +21,11 @@ def proto2ass(
         comment_filter: str = "",
         reduced: bool = False,
         bold: bool = False,
+        live: bool = False,
         out_filename: str = "",
 ) -> Optional[str]:
     ass = Ass(width, height, reserve_blank, font_face, font_size, alpha, duration_marquee,
-              duration_still, comment_filter, reduced, bold)
+              duration_still, comment_filter, reduced, bold, live)
 
     if isinstance(proto_file, io.IOBase):
         proto_file = proto_file.read()

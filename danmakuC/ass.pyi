@@ -13,6 +13,7 @@ class Ass:
                  filter: str = "",
                  reduced: bool = False,
                  bold: bool = False,
+                 live: bool = False,
                 ): ...
 
     def add_comment(self, progress: float, ctime: int, content: str, size_factor: float, mode: int, color: int, pool: int) -> bool:
