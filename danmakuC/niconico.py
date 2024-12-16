@@ -118,6 +118,8 @@ def json2ass(
                 continue
             pos, color, size = style["pos"], style["color"], style["size"]
             dr = commands.get("duration") or (duration_still if pos in [1, 2] else duration_marquee)
+            alpha_factor = style["alpha"]
+            font = style["font"]
             ass.add_nico_comment(
                 vpos,
                 dr,
@@ -126,6 +128,8 @@ def json2ass(
                 size,
                 pos,
                 color,
+                alpha_factor,
+                font,
                 pool,
                 live or commands["full"],
                 commands["ender"]
@@ -176,6 +180,8 @@ def xml2ass(
             continue
         pos, color, size = style["pos"], style["color"], style["size"]
         dr = commands.get("duration") or (duration_still if pos in [1, 2] else duration_marquee)
+        alpha_factor = style["alpha"]
+        font = style["font"]
         ass.add_nico_comment(
             vpos,
             dr,
@@ -184,6 +190,8 @@ def xml2ass(
             size,
             pos,
             color,
+            alpha_factor,
+            font,
             pool,
             live or commands["full"],
             commands["ender"]
@@ -210,7 +218,7 @@ def process_mailstyle(mail: Union[str, list], style: dict):
         elif match := HEX_COLOR_REGEX.match(mailstyle):
             style["color"] = int(match.group(1), 16)
         elif mailstyle in FONT_MAPPING:
-            style["font"] = FONT_MAPPING[mailstyle]
+            style["font"] = mailstyle
         elif mailstyle in OTHERS:
             commands[mailstyle] = True
         elif match := DURATION_REGEX.match(mailstyle):
@@ -279,8 +287,9 @@ SIZE_MAPPING = {
 }
 
 FONT_MAPPING = {
-    "mincho": "Yu Mincho", # Simsun
-    "gothic": "Yu Gothic", # Gulim, SimHei
+    "defont", # MS PGothic, Hiragino Sans
+    "mincho", # Yu Mincho, SimSun, Hiragino Mincho
+    "gothic", # Yu Gothic, Gulim, SimHei, Hiragino Sans
 }
 
 OTHERS = {
