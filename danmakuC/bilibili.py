@@ -20,10 +20,12 @@ def proto2ass(
         duration_still: float = 5.0,
         comment_filter: str = "",
         reduced: bool = False,
+        bold: bool = False,
+        live: bool = False,
         out_filename: str = "",
 ) -> Optional[str]:
     ass = Ass(width, height, reserve_blank, font_face, font_size, alpha, duration_marquee,
-              duration_still, comment_filter, reduced)
+              duration_still, comment_filter, reduced, bold, live)
 
     if isinstance(proto_file, io.IOBase):
         proto_file = proto_file.read()
@@ -39,9 +41,10 @@ def proto2ass(
                 elem.progress / 1000,  # 视频内出现的时间
                 elem.ctime,  # 弹幕的发送时间（时间戳）
                 elem.content,
-                elem.fontsize,
+                elem.fontsize / 25.0,
                 mode_map[elem.mode],
                 elem.color,
+                elem.pool
             )
         except TypeError:
             # TypeError: incase integer overflow https://github.com/HFrost0/bilix/issues/102
