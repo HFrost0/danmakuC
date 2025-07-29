@@ -412,7 +412,7 @@ public:
                 return a.ctime < b.ctime;
         });
         /// 3. find row
-        vector<vector<vector<Comment*>>> rows(3, vector<vector<Comment*>>(4, vector<Comment*>(height - reserve_blank + 1, nullptr)));
+        vector<vector<vector<Comment*>>> rows(4, vector<vector<Comment*>>(4, vector<Comment*>(height - reserve_blank + 1, nullptr)));
         for (size_t idx = 0; idx < comments.size(); ++idx) {
             Comment& c = comments[idx];
             if (c.mode != 4) {  // not a bilipos

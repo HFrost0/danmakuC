@@ -22,8 +22,8 @@ def get_convert_func(file: Union[str, os.PathLike], ) -> Callable:
         with open(file, 'rb') as fx:
             if b"packet" in fx.read(128):
                 return niconico.xml2ass
-            # else:
-            #     return bilibili.xml2ass
+            else:
+                return bilibili.xml2ass
     if is_gzip_file(file):
         open_func = gzip.open
     else:

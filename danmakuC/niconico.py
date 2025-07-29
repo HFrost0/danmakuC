@@ -3,7 +3,6 @@ import re
 import json
 import xml.etree.ElementTree as ET
 from datetime import datetime
-from functools import lru_cache
 from .ass import Ass
 from .protobuf.niconico import NNDCommentProto
 from typing import Union, Optional
@@ -94,6 +93,7 @@ def json2ass(
                 commentlist.setdefault(cmt.get("fork", ""), []).extend(comments)
     else:
         commentlist = {"": data}
+    scripts = []
     for f, comments in commentlist.items():
         if f == "owner":
             comments.sort(key=lambda c: c["vposMs"])
@@ -110,9 +110,9 @@ def json2ass(
             if text.startswith(('@', '＠', '/')) and fork == "owner":
                 style, commands = process_mailstyle(mail, style)
                 dr = commands.get("duration", 30)
-                parse_nicoscript(text, vpos, dr, style)
+                parse_nicoscript(text, vpos, dr, style, scripts)
                 continue
-            text, style = process_nicoscript(text, style, vpos, fork)
+            text, style = process_nicoscript(text, style, vpos, fork, scripts)
             style, commands = process_mailstyle(mail, style)
             if commands.get("invisible"):
                 continue
@@ -161,6 +161,7 @@ def xml2ass(
         root = ET.fromstring(xml_file)
     else:
         root = ET.parse(xml_file).getroot()
+    scripts = []
     for chat in root.findall("chat"):
         fork = chat.get("fork", "")
         pool = 1 if fork == "owner" else 0
@@ -172,9 +173,9 @@ def xml2ass(
         if text.startswith(('@', '＠', '/')) and fork == "owner":
             style, commands = process_mailstyle(mail, style)
             dr = commands.get("duration", 30)
-            parse_nicoscript(text, vpos, dr, style)
+            parse_nicoscript(text, vpos, dr, style, scripts)
             continue
-        text, style = process_nicoscript(text, style, vpos, fork)
+        text, style = process_nicoscript(text, style, vpos, fork, scripts)
         style, commands = process_mailstyle(mail, style)
         if commands.get("invisible"):
             continue
@@ -337,8 +338,8 @@ FUNC_PARAMS = {
             },
         }
 
-scripts = []
-def parse_nicoscript(text: str, vpos: float, dr: float, style: dict):
+
+def parse_nicoscript(text: str, vpos: float, dr: float, style: dict, scripts: list):
     text = text.replace(r'\n', '\n').replace(r'\t', '\t')
     match = NAME_PATTERN.match(text.strip())
     if not match:
@@ -366,7 +367,7 @@ def parse_nicoscript(text: str, vpos: float, dr: float, style: dict):
     result["end"] = vpos + dr
     scripts.append(result)
 
-@lru_cache(maxsize=None)
+
 def is_target(target: str, fork: str):
     if target in ["全", "含む"]:
         return True
@@ -376,7 +377,7 @@ def is_target(target: str, fork: str):
         return True
     return False
 
-def process_nicoscript(text: str, style: dict, vpos: float, fork: str):
+def process_nicoscript(text: str, style: dict, vpos: float, fork: str, scripts: list):
     for s in (s for s in scripts if s["start"] <= vpos <= s["end"]):
         if s["func_name"] == "デフォルト":
             if style != s["style"]:
